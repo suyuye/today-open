@@ -1,0 +1,35 @@
+# Build results
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+publish/
+
+# Visual Studio / Rider
+.vs/
+.idea/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# .NET
+project.lock.json
+*.nupkg
+
+# Logs
+*.log
+
+# Local data / databases
+*.db
+*.db-shm
+*.db-wal
+
+# Project-local tooling data (never publish)
+Temp/
+.workbuddy/
+.claude/
+
+# Archives / stale artifacts
+*.zip.old*
+*.stale

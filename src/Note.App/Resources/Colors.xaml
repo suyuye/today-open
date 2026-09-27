@@ -1,0 +1,110 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- ===================== 品牌与语义色 ===================== -->
+    <SolidColorBrush x:Key="BrandPrimary" Color="#E8743B"/>
+    <SolidColorBrush x:Key="BrandHover" Color="#D4632F"/>
+    <SolidColorBrush x:Key="BrandPressed" Color="#BF5525"/>
+    <SolidColorBrush x:Key="Success" Color="#52C41A"/>
+    <SolidColorBrush x:Key="Warning" Color="#FAAD14"/>
+    <SolidColorBrush x:Key="Error" Color="#C0392B"/>
+
+    <!-- ===================== 便签色板（莫兰迪 12 色：6 色相 × 深浅两档） =====================
+         命名：Note{色相}{档位}_{色块}。每个色相必须齐备 Bg / Title / Border / Text / Shadow 五个键。
+         · Bg     便签纸底色
+         · Title  标题栏 / 状态栏底色（比 Bg 略深一档）
+         · Border 描边
+         · Text   正文与标题文字色，需保证在 Bg 上的可读对比度
+         · Shadow 阴影色（跟色相走的暖色，代替原来的纯黑阴影）
+         浅档统一规律：Bg 比深档亮、Border 更淡、Text 比深档浅一点点以保持对比。 -->
+    <!-- 米黄・深（默认色，原 Yellow） -->
+    <SolidColorBrush x:Key="NoteYellowDeep_Bg" Color="#F5ECD7"/>
+    <SolidColorBrush x:Key="NoteYellowDeep_Title" Color="#EDE0C0"/>
+    <SolidColorBrush x:Key="NoteYellowDeep_Border" Color="#D4C4A0"/>
+    <SolidColorBrush x:Key="NoteYellowDeep_Text" Color="#5C4A00"/>
+    <SolidColorBrush x:Key="NoteYellowDeep_Shadow" Color="#6B5620"/>
+    <!-- 米黄・浅 -->
+    <SolidColorBrush x:Key="NoteYellowLight_Bg" Color="#FBF6E9"/>
+    <SolidColorBrush x:Key="NoteYellowLight_Title" Color="#F5EDD6"/>
+    <SolidColorBrush x:Key="NoteYellowLight_Border" Color="#E3D8BC"/>
+    <SolidColorBrush x:Key="NoteYellowLight_Text" Color="#6B5A1E"/>
+    <SolidColorBrush x:Key="NoteYellowLight_Shadow" Color="#8A7846"/>
+
+    <!-- 薄荷绿・深（原 Green） -->
+    <SolidColorBrush x:Key="NoteGreenDeep_Bg" Color="#D4E4D0"/>
+    <SolidColorBrush x:Key="NoteGreenDeep_Title" Color="#C8D8C0"/>
+    <SolidColorBrush x:Key="NoteGreenDeep_Border" Color="#A8C4A0"/>
+    <SolidColorBrush x:Key="NoteGreenDeep_Text" Color="#3A5A30"/>
+    <SolidColorBrush x:Key="NoteGreenDeep_Shadow" Color="#415C38"/>
+    <!-- 薄荷绿・浅 -->
+    <SolidColorBrush x:Key="NoteGreenLight_Bg" Color="#E7F1E4"/>
+    <SolidColorBrush x:Key="NoteGreenLight_Title" Color="#DCEBD8"/>
+    <SolidColorBrush x:Key="NoteGreenLight_Border" Color="#C2D8BC"/>
+    <SolidColorBrush x:Key="NoteGreenLight_Text" Color="#4A6B40"/>
+    <SolidColorBrush x:Key="NoteGreenLight_Shadow" Color="#6E8A66"/>
+
+    <!-- 雾霾蓝・深（原 Blue） -->
+    <SolidColorBrush x:Key="NoteBlueDeep_Bg" Color="#C8D8E8"/>
+    <SolidColorBrush x:Key="NoteBlueDeep_Title" Color="#B8C8D8"/>
+    <SolidColorBrush x:Key="NoteBlueDeep_Border" Color="#90B0D0"/>
+    <SolidColorBrush x:Key="NoteBlueDeep_Text" Color="#2A4A6A"/>
+    <SolidColorBrush x:Key="NoteBlueDeep_Shadow" Color="#33485C"/>
+    <!-- 雾霾蓝・浅 -->
+    <SolidColorBrush x:Key="NoteBlueLight_Bg" Color="#E2EDF6"/>
+    <SolidColorBrush x:Key="NoteBlueLight_Title" Color="#D4E3F0"/>
+    <SolidColorBrush x:Key="NoteBlueLight_Border" Color="#B4CCE2"/>
+    <SolidColorBrush x:Key="NoteBlueLight_Text" Color="#3A5A7A"/>
+    <SolidColorBrush x:Key="NoteBlueLight_Shadow" Color="#66809A"/>
+
+    <!-- 豆沙粉・深（原 Pink） -->
+    <SolidColorBrush x:Key="NotePinkDeep_Bg" Color="#E8D0D0"/>
+    <SolidColorBrush x:Key="NotePinkDeep_Title" Color="#D8C0C0"/>
+    <SolidColorBrush x:Key="NotePinkDeep_Border" Color="#C8A0A0"/>
+    <SolidColorBrush x:Key="NotePinkDeep_Text" Color="#7A4A4A"/>
+    <SolidColorBrush x:Key="NotePinkDeep_Shadow" Color="#6E4646"/>
+    <!-- 豆沙粉・浅 -->
+    <SolidColorBrush x:Key="NotePinkLight_Bg" Color="#F5E6E6"/>
+    <SolidColorBrush x:Key="NotePinkLight_Title" Color="#EEDADA"/>
+    <SolidColorBrush x:Key="NotePinkLight_Border" Color="#DCC2C2"/>
+    <SolidColorBrush x:Key="NotePinkLight_Text" Color="#8A5A5A"/>
+    <SolidColorBrush x:Key="NotePinkLight_Shadow" Color="#9A7373"/>
+
+    <!-- 紫罗兰・深（原 Purple） -->
+    <SolidColorBrush x:Key="NotePurpleDeep_Bg" Color="#D8D0E4"/>
+    <SolidColorBrush x:Key="NotePurpleDeep_Title" Color="#C8C0D4"/>
+    <SolidColorBrush x:Key="NotePurpleDeep_Border" Color="#A898C0"/>
+    <SolidColorBrush x:Key="NotePurpleDeep_Text" Color="#4A3A6A"/>
+    <SolidColorBrush x:Key="NotePurpleDeep_Shadow" Color="#4F4468"/>
+    <!-- 紫罗兰・浅 -->
+    <SolidColorBrush x:Key="NotePurpleLight_Bg" Color="#EBE5F2"/>
+    <SolidColorBrush x:Key="NotePurpleLight_Title" Color="#E0D9EC"/>
+    <SolidColorBrush x:Key="NotePurpleLight_Border" Color="#C6BCD8"/>
+    <SolidColorBrush x:Key="NotePurpleLight_Text" Color="#5A4A7A"/>
+    <SolidColorBrush x:Key="NotePurpleLight_Shadow" Color="#7E7396"/>
+
+    <!-- 高级灰・深（原 Gray） -->
+    <SolidColorBrush x:Key="NoteGrayDeep_Bg" Color="#D8D8D8"/>
+    <SolidColorBrush x:Key="NoteGrayDeep_Title" Color="#C8C8C8"/>
+    <SolidColorBrush x:Key="NoteGrayDeep_Border" Color="#A8A8A8"/>
+    <SolidColorBrush x:Key="NoteGrayDeep_Text" Color="#444444"/>
+    <SolidColorBrush x:Key="NoteGrayDeep_Shadow" Color="#555555"/>
+    <!-- 高级灰・浅 -->
+    <SolidColorBrush x:Key="NoteGrayLight_Bg" Color="#EBEBEB"/>
+    <SolidColorBrush x:Key="NoteGrayLight_Title" Color="#E0E0E0"/>
+    <SolidColorBrush x:Key="NoteGrayLight_Border" Color="#C6C6C6"/>
+    <SolidColorBrush x:Key="NoteGrayLight_Text" Color="#555555"/>
+    <SolidColorBrush x:Key="NoteGrayLight_Shadow" Color="#8A8A8A"/>
+
+    <!-- ===================== 中性色（文字与背景） ===================== -->
+    <SolidColorBrush x:Key="TextPrimary" Color="#1A1B1C"/>
+    <SolidColorBrush x:Key="TextSecondary" Color="#444444"/>
+    <SolidColorBrush x:Key="TextTertiary" Color="#666666"/>
+    <SolidColorBrush x:Key="TextPlaceholder" Color="#999999"/>
+    <SolidColorBrush x:Key="TextInverse" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="BgPage" Color="#F3F0EA"/>
+    <SolidColorBrush x:Key="BgCard" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="BgSidebar" Color="#ECE9E3"/>
+    <SolidColorBrush x:Key="BorderPrimary" Color="#D4D1CB"/>
+    <SolidColorBrush x:Key="BorderLight" Color="#E0DDD7"/>
+
+</ResourceDictionary>

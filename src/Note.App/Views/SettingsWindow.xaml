@@ -1,0 +1,1245 @@
+<Window x:Class="NoteApp.Views.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:helpers="clr-namespace:NoteApp.Helpers"
+        Title="今日营业中 · 设置"
+        Icon="/Note.App;component/Assets/app.ico"
+        Width="720" Height="520" MinWidth="600" MinHeight="450"
+        WindowStartupLocation="CenterScreen"
+        WindowStyle="None"
+        ResizeMode="CanResize"
+        ShowInTaskbar="True"
+        Background="{DynamicResource BgPage}"
+        Foreground="{DynamicResource TextPrimary}"
+        FontFamily="{StaticResource BaseFontFamily}"
+        FontSize="12.5">
+    <!-- 与主列表窗口（NoteListView）同款的自定义边框方案：
+         WindowChrome 提供原生缩放/拖拽的窗口行为，标题栏自己画。
+         此前这里用 SingleBorderWindow，是全应用唯一一个系统原生标题栏的窗口，
+         视觉上像两个软件拼出来的 —— 本次统一（#37）。 -->
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="40"
+                      ResizeBorderThickness="6"
+                      CornerRadius="0"
+                      UseAeroCaptionButtons="True"/>
+    </WindowChrome.WindowChrome>
+    <Window.Resources>
+        <!-- 窗口标题栏按钮：与 NoteListView 的 WindowCaptionButton 同规格（46×40、悬停变灰） -->
+        <Style x:Key="SettingsCaptionButton" TargetType="Button">
+            <Setter Property="Width" Value="46"/>
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bg" Background="{TemplateBinding Background}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bg" Property="Background" Value="#E5E5E5"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="bg" Property="Background" Value="#CCCCCC"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <helpers:NoteColorConverter x:Key="NoteColor"/>
+        <helpers:IconKeyToGeometryConverter x:Key="IconKeyToGeometry"/>
+        <helpers:ByteSizeConverter x:Key="ByteSize"/>
+
+        <!-- 设置页左侧导航项容器样式：无默认选中态，自定义悬停/选中背景 + 橙色竖条 -->
+        <Style x:Key="SettingsNavItemStyle" TargetType="ListBoxItem">
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="VerticalContentAlignment" Value="Stretch"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Grid>
+                            <!-- 选中态左侧 3px 橙色竖条 -->
+                            <Border x:Name="LeftBar" Width="3" Background="{StaticResource BrandPrimary}"
+                                    CornerRadius="1.5" HorizontalAlignment="Left" VerticalAlignment="Stretch"
+                                    Visibility="Collapsed"/>
+                            <Border x:Name="Bd" Background="{TemplateBinding Background}" Padding="16,0">
+                                <ContentPresenter/>
+                            </Border>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#0A000000"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#1AE8743B"/>
+                                <Setter TargetName="LeftBar" Property="Visibility" Value="Visible"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- 设置页左侧导航项模板：图标 + 文字，选中态文字转橙色半粗体 -->
+        <DataTemplate x:Key="SettingsNavItemTemplate">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <Path x:Name="NavIcon" Width="16" Height="16" Stretch="Uniform"
+                      Stroke="{DynamicResource TextSecondary}" StrokeThickness="1.2"
+                      Fill="Transparent" VerticalAlignment="Center">
+                    <Path.Style>
+                        <Style TargetType="Path">
+                            <Setter Property="Data" Value="{StaticResource IconSettings}"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding}" Value="外观">
+                                    <Setter Property="Data" Value="{StaticResource IconPalette}"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding}" Value="快捷键">
+                                    <Setter Property="Data" Value="{StaticResource IconKeyboard}"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding}" Value="数据">
+                                    <Setter Property="Data" Value="{StaticResource IconArchive}"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding}" Value="关于">
+                                    <Setter Property="Data" Value="{StaticResource IconInfo}"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Path.Style>
+                </Path>
+                <TextBlock x:Name="NavName" Text="{Binding}" FontSize="12.5" Margin="12,0,0,0"
+                           Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center"/>
+            </StackPanel>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
+                    <Setter TargetName="NavName" Property="Foreground" Value="{StaticResource BrandPrimary}"/>
+                    <Setter TargetName="NavName" Property="FontWeight" Value="SemiBold"/>
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+
+        <!-- 设置项分组标题 -->
+        <Style x:Key="SettingsGroupTitleStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="11.5"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
+        </Style>
+
+        <!-- 设置项标签 -->
+        <Style x:Key="SettingsLabelStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12.5"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+        </Style>
+
+        <!-- 设置项说明文字 -->
+        <Style x:Key="SettingsDescStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPlaceholder}"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+        </Style>
+
+        <!-- 主题选项卡片容器样式 -->
+        <Style x:Key="ThemeOptionItemStyle" TargetType="ListBoxItem">
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Margin" Value="0,0,8,0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border x:Name="Bd" Background="{DynamicResource BgCard}" BorderBrush="{DynamicResource BorderPrimary}"
+                                BorderThickness="1" CornerRadius="6" Padding="12,7">
+                            <ContentPresenter/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#B4B1AB"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource BrandPrimary}"/>
+                                <Setter TargetName="Bd" Property="Background" Value="#14E8743B"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- 主题选项模板：图标 + 文字 -->
+        <DataTemplate x:Key="ThemeOptionTemplate">
+            <StackPanel Orientation="Horizontal">
+                <Path Data="{Binding IconKey, Converter={StaticResource IconKeyToGeometry}}"
+                      Width="14" Height="14" Stretch="Uniform" Stroke="{DynamicResource TextSecondary}"
+                      StrokeThickness="1.2" Fill="Transparent" VerticalAlignment="Center"/>
+                <TextBlock Text="{Binding Display}" FontSize="11.5" Foreground="{DynamicResource TextPrimary}"
+                           VerticalAlignment="Center" Margin="6,0,0,0"/>
+            </StackPanel>
+        </DataTemplate>
+
+        <!-- 颜色色块容器样式 -->
+        <Style x:Key="ColorSwatchItemStyle" TargetType="ListBoxItem">
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Margin" Value="0,0,10,0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Grid>
+                            <Border x:Name="Ring" Width="32" Height="32" CornerRadius="16"
+                                    BorderBrush="{StaticResource BrandPrimary}" BorderThickness="2"
+                                    Visibility="Collapsed"/>
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Ring" Property="Visibility" Value="Visible"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- 颜色色块模板：圆形色块 + 选中勾选 -->
+        <DataTemplate x:Key="ColorSwatchTemplate">
+            <Grid Width="24" Height="24">
+                <Border CornerRadius="12"
+                        Background="{Binding Converter={StaticResource NoteColor}, ConverterParameter=Bg}"
+                        BorderBrush="{Binding Converter={StaticResource NoteColor}, ConverterParameter=Border}"
+                        BorderThickness="1"/>
+                <Path x:Name="Check" Data="M 4,12 L 9,17 L 20,7"
+                      Stroke="{Binding Converter={StaticResource NoteColor}, ConverterParameter=Text}"
+                      StrokeThickness="2.2" Width="16" Height="16" Stretch="Uniform"
+                      HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed"/>
+            </Grid>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
+                    <Setter TargetName="Check" Property="Visibility" Value="Visible"/>
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+    </Window.Resources>
+    <Grid>
+        <Grid.RowDefinitions>
+            <!-- 行0：自绘标题栏（高度必须与 WindowChrome.CaptionHeight 一致，拖拽区才对得上） -->
+            <RowDefinition Height="40"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="180"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- 行0：标题栏（横跨两列）。应用名从侧栏顶部挪到这里 —— 有系统标题栏时它在那，
+             换自绘标题栏后窗口顶部整体归标题栏管，应用名跟着上来。 -->
+        <Grid Grid.Row="0" Grid.ColumnSpan="2" Background="{DynamicResource BgSidebar}">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="14,0,0,0">
+                <!-- 临时应用图标（便签形状），后续替换为正式图标 -->
+                <Grid Width="16" Height="16" VerticalAlignment="Center">
+                    <Rectangle Fill="{StaticResource BrandPrimary}" RadiusX="3" RadiusY="3"/>
+                    <Rectangle Fill="White" Width="8" Height="1.5" RadiusX="0.75" RadiusY="0.75"
+                               HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,4.5,0,0"/>
+                    <Rectangle Fill="White" Width="8" Height="1.5" RadiusX="0.75" RadiusY="0.75"
+                               HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,7.5,0,0"/>
+                    <Rectangle Fill="White" Width="5" Height="1.5" RadiusX="0.75" RadiusY="0.75"
+                               HorizontalAlignment="Left" VerticalAlignment="Top" Margin="4,10.5,0,0"/>
+                </Grid>
+                <TextBlock Text="今日营业中 · 设置" FontSize="12.5" FontWeight="SemiBold"
+                           VerticalAlignment="Center" Margin="8,0,0,0"/>
+            </StackPanel>
+
+            <!-- 右侧：最小化 / 关闭（设置窗口没有最大化场景）。
+                 🔴 必须标 IsHitTestVisibleInChrome：不标的话按钮整个落在 CaptionHeight
+                 拖拽区里，点击会被当成拖标题栏，按钮根本按不到。 -->
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Stretch"
+                        HorizontalAlignment="Right">
+                <Button Style="{StaticResource SettingsCaptionButton}"
+                        Click="MinimizeButton_Click" ToolTip="最小化" AutomationProperties.Name="最小化"
+                        WindowChrome.IsHitTestVisibleInChrome="True">
+                    <Path Data="M 0,6 L 10,6" Stroke="{DynamicResource TextPrimary}" StrokeThickness="1.2"
+                          Width="10" Height="10" Stretch="Uniform"/>
+                </Button>
+                <Button Style="{StaticResource SettingsCaptionButton}"
+                        Click="CloseButton_Click" ToolTip="关闭" AutomationProperties.Name="关闭"
+                        WindowChrome.IsHitTestVisibleInChrome="True">
+                    <Path Data="M 1,1 L 9,9 M 9,1 L 1,9" Stroke="{DynamicResource TextPrimary}" StrokeThickness="1.2"
+                          Width="10" Height="10" Stretch="Uniform"/>
+                </Button>
+            </StackPanel>
+        </Grid>
+
+        <!-- 列0：左侧导航（180px） -->
+        <Border Grid.Row="1" Grid.Column="0" Background="{DynamicResource BgSidebar}"
+                BorderBrush="{DynamicResource BorderPrimary}" BorderThickness="0,0,1,0">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- 导航列表（应用名已挪到自绘标题栏，侧栏顶部不再重复） -->
+                <ListBox Grid.Row="0" ItemsSource="{Binding Categories}"
+                         SelectedItem="{Binding CurrentCategory, Mode=TwoWay}"
+                         Background="Transparent" BorderThickness="0"
+                         Margin="0,8,0,0"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                         ScrollViewer.VerticalScrollBarVisibility="Auto"
+                         ItemContainerStyle="{StaticResource SettingsNavItemStyle}"
+                         ItemTemplate="{StaticResource SettingsNavItemTemplate}"/>
+
+                <!-- 底部版本号（唯一来源 AppInfo.VersionText，与主页/关于页一致） -->
+                <TextBlock Grid.Row="1" Text="{x:Static helpers:AppInfo.VersionText}" FontSize="10.5"
+                           Foreground="{DynamicResource TextPlaceholder}"
+                           Margin="16,0,16,12" HorizontalAlignment="Left"/>
+            </Grid>
+        </Border>
+
+        <!-- 列1：右侧内容 -->
+        <Grid Grid.Row="1" Grid.Column="1" Background="{DynamicResource BgPage}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="48"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- 顶部标题栏：显示当前分类名（如「通用设置」） -->
+            <Border Grid.Row="0" BorderBrush="{DynamicResource BorderPrimary}" BorderThickness="0,0,0,1">
+                <TextBlock Text="{Binding CategoryTitle}"
+                           FontSize="15" FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextPrimary}"
+                           VerticalAlignment="Center" Margin="24,0,0,0"/>
+            </Border>
+
+            <!-- 内容区：按分类切换（通用显示设置项，其余显示占位） -->
+            <Grid Grid.Row="1">
+
+                <!-- 通用设置 -->
+                <ScrollViewer x:Name="GeneralPanel" VerticalScrollBarVisibility="Auto">
+                    <ScrollViewer.Style>
+                        <Style TargetType="ScrollViewer">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding CurrentCategory}" Value="通用">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </ScrollViewer.Style>
+                    <StackPanel DataContext="{Binding GeneralSettings}" Margin="24,20,24,24">
+
+                        <!-- 分组1：启动 -->
+                        <TextBlock Text="启动" Style="{StaticResource SettingsGroupTitleStyle}"/>
+
+                        <!-- 开机自启 -->
+                        <Grid Margin="0,14,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock Text="开机自启" Style="{StaticResource SettingsLabelStyle}"/>
+                                <TextBlock Text="登录 Windows 后自动启动应用" Style="{StaticResource SettingsDescStyle}" Margin="0,2,0,0"/>
+                            </StackPanel>
+                            <CheckBox Grid.Column="1" Style="{StaticResource ToggleSwitchStyle}"
+                                      IsChecked="{Binding AutostartEnabled, Mode=TwoWay}" VerticalAlignment="Center"/>
+                        </Grid>
+
+                        <!-- 启动延迟 -->
+                        <Grid Margin="0,16,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock Text="启动延迟" Style="{StaticResource SettingsLabelStyle}"/>
+                                <TextBlock Text="{Binding StartupDelaySeconds, StringFormat='启动后延迟 {0} 秒显示便签'}"
+                                           Style="{StaticResource SettingsDescStyle}" Margin="0,2,0,0"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                <Slider Width="150" Minimum="0" Maximum="30" TickFrequency="1" IsSnapToTickEnabled="True"
+                                        Value="{Binding StartupDelaySeconds, Mode=TwoWay}" VerticalAlignment="Center"/>
+                                <TextBlock Text="{Binding StartupDelaySeconds, StringFormat={}{0} 秒}" Width="44"
+                                           TextAlignment="Right" VerticalAlignment="Center"
+                                           Foreground="{DynamicResource TextSecondary}"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- 分隔线 -->
+                        <Border Height="1" Background="{DynamicResource BorderLight}" Margin="0,20,0,0"/>
+
+                        <!-- 分组2：窗口行为 -->
+                        <TextBlock Text="窗口行为" Style="{StaticResource SettingsGroupTitleStyle}" Margin="0,20,0,0"/>
+
+                        <!-- 关闭时最小化到托盘 -->
+                        <Grid Margin="0,14,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock Text="关闭时最小化到托盘" Style="{StaticResource SettingsLabelStyle}"/>
+                                <TextBlock Text="点击关闭按钮时隐藏到系统托盘而非退出" Style="{StaticResource SettingsDescStyle}" Margin="0,2,0,0"/>
+                            </StackPanel>
+                            <CheckBox Grid.Column="1" Style="{StaticResource ToggleSwitchStyle}"
+                                      IsChecked="{Binding MinimizeToTray, Mode=TwoWay}" VerticalAlignment="Center"/>
+                        </Grid>
+
+                        <!-- 新便签位置 -->
+                        <Grid Margin="0,16,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock Text="新便签位置" Style="{StaticResource SettingsLabelStyle}"/>
+                                <TextBlock Text="新建便签的默认显示位置" Style="{StaticResource SettingsDescStyle}" Margin="0,2,0,0"/>
+                            </StackPanel>
+                            <ComboBox Grid.Column="1" Width="140" VerticalAlignment="Center" FontSize="12"
+                                      Style="{StaticResource RoundedComboBoxStyle}"
+                                      SelectedValue="{Binding NewNotePosition, Mode=TwoWay}" SelectedValuePath="Tag">
+                                <ComboBoxItem Content="鼠标位置" Tag="mouse"/>
+                                <ComboBoxItem Content="屏幕角落" Tag="screen_corner"/>
+                                <ComboBoxItem Content="屏幕中央" Tag="center"/>
+                            </ComboBox>
+                        </Grid>
+
+                        <!-- 置顶不抢焦点 -->
+                        <Grid Margin="0,16,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock Text="置顶不抢焦点" Style="{StaticResource SettingsLabelStyle}"/>
+                                <TextBlock Text="置顶便签点击标题栏不抢焦点，点击内容区激活输入" Style="{StaticResource SettingsDescStyle}" Margin="0,2,0,0"/>
+                            </StackPanel>
+                            <CheckBox Grid.Column="1" Style="{StaticResource ToggleSwitchStyle}"
+                                      IsChecked="{Binding PinnedNoFocus, Mode=TwoWay}" VerticalAlignment="Center"/>
+                        </Grid>
+
+                        <!-- 分隔线 -->
+                        <Border Height="1" Background="{DynamicResource BorderLight}" Margin="0,20,0,0"/>
+
+                        <!-- 分组3：编辑 -->
+                        <TextBlock Text="编辑" Style="{StaticResource SettingsGroupTitleStyle}" Margin="0,20,0,0"/>
+
+                        <!-- 自动保存间隔 -->
+                        <Grid Margin="0,14,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock Text="自动保存间隔" Style="{StaticResource SettingsLabelStyle}"/>
+                                <TextBlock Text="{Binding AutosaveIntervalMs, StringFormat='停止输入 {0} 毫秒后自动保存'}"
+                                           Style="{StaticResource SettingsDescStyle}" Margin="0,2,0,0"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                <Slider Width="150" Minimum="100" Maximum="2000" TickFrequency="100" IsSnapToTickEnabled="True"
+                                        Value="{Binding AutosaveIntervalMs, Mode=TwoWay}" VerticalAlignment="Center"/>
+                                <TextBlock Text="{Binding AutosaveIntervalMs, StringFormat={}{0} 毫秒}" Width="68"
+                                           TextAlignment="Right" VerticalAlignment="Center"
+                                           Foreground="{DynamicResource TextSecondary}"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- 分隔线 -->
+                        <Border Height="1" Background="{DynamicResource BorderLight}" Margin="0,20,0,0"/>
+
+                        <!-- 分组4：提醒 -->
+                        <TextBlock Text="提醒" Style="{StaticResource SettingsGroupTitleStyle}" Margin="0,20,0,0"/>
+
+                        <!-- 提醒声音 -->
+                        <Grid Margin="0,14,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock Text="提醒声音" Style="{StaticResource SettingsLabelStyle}"/>
+                                <TextBlock Text="提醒到期时播放提示音" Style="{StaticResource SettingsDescStyle}" Margin="0,2,0,0"/>
+                            </StackPanel>
+                            <CheckBox Grid.Column="1" Style="{StaticResource ToggleSwitchStyle}"
+                                      IsChecked="{Binding SoundEnabled, Mode=TwoWay}" VerticalAlignment="Center"/>
+                        </Grid>
+
+                        <!-- 默认稍后提醒间隔 -->
+                        <Grid Margin="0,16,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock Text="默认稍后提醒间隔" Style="{StaticResource SettingsLabelStyle}"/>
+                                <TextBlock Text="{Binding SnoozeMinutes, StringFormat='点击稍后默认延后 {0} 分钟'}"
+                                           Style="{StaticResource SettingsDescStyle}" Margin="0,2,0,0"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                <Slider Width="150" Minimum="1" Maximum="60" TickFrequency="1" IsSnapToTickEnabled="True"
+                                        Value="{Binding SnoozeMinutes, Mode=TwoWay}" VerticalAlignment="Center"/>
+                                <TextBlock Text="{Binding SnoozeMinutes, StringFormat={}{0} 分钟}" Width="44"
+                                           TextAlignment="Right" VerticalAlignment="Center"
+                                           Foreground="{DynamicResource TextSecondary}"/>
+                            </StackPanel>
+                        </Grid>
+
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- 外观设置 -->
+                <ScrollViewer x:Name="AppearancePanel" VerticalScrollBarVisibility="Auto">
+                    <ScrollViewer.Style>
+                        <Style TargetType="ScrollViewer">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding CurrentCategory}" Value="外观">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </ScrollViewer.Style>
+                    <StackPanel DataContext="{Binding Appearance}" Margin="24,20,24,24">
+
+                        <!-- 分组1：主题 -->
+                        <TextBlock Text="主题" Style="{StaticResource SettingsGroupTitleStyle}"/>
+
+                        <ListBox ItemsSource="{Binding ThemeOptions}" SelectedValue="{Binding Theme, Mode=TwoWay}" SelectedValuePath="Value"
+                                 ItemContainerStyle="{StaticResource ThemeOptionItemStyle}" ItemTemplate="{StaticResource ThemeOptionTemplate}"
+                                 Background="Transparent" BorderThickness="0" Margin="0,12,0,0"
+                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Disabled">
+                            <ListBox.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Horizontal"/>
+                                </ItemsPanelTemplate>
+                            </ListBox.ItemsPanel>
+                        </ListBox>
+
+                        <TextBlock Text="主题切换即时生效，便签颜色不受主题影响" Style="{StaticResource SettingsDescStyle}" Margin="0,6,0,0"/>
+
+                        <!-- 分隔线 -->
+                        <Border Height="1" Background="{DynamicResource BorderLight}" Margin="0,20,0,0"/>
+
+                        <!-- 分组2：默认便签 -->
+                        <TextBlock Text="默认便签" Style="{StaticResource SettingsGroupTitleStyle}" Margin="0,20,0,0"/>
+
+                        <Grid Margin="0,14,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- 左：颜色 + 滑块 -->
+                            <StackPanel>
+                                <TextBlock Text="默认颜色" Style="{StaticResource SettingsLabelStyle}"/>
+                                <ListBox ItemsSource="{Binding ColorOptions}" SelectedItem="{Binding DefaultColor, Mode=TwoWay}"
+                                         ItemContainerStyle="{StaticResource ColorSwatchItemStyle}" ItemTemplate="{StaticResource ColorSwatchTemplate}"
+                                         Background="Transparent" BorderThickness="0" Margin="0,10,0,0"
+                                         ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Disabled">
+                                    <ListBox.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <StackPanel Orientation="Horizontal"/>
+                                        </ItemsPanelTemplate>
+                                    </ListBox.ItemsPanel>
+                                </ListBox>
+
+                                <TextBlock Text="默认不透明度" Style="{StaticResource SettingsLabelStyle}" Margin="0,18,0,0"/>
+                                <TextBlock Text="仅影响新建便签，已创建的便签不受影响" Style="{StaticResource SettingsDescStyle}" Margin="0,2,0,0"/>
+                                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                    <Slider Width="180" Minimum="30" Maximum="100" TickFrequency="5" IsSnapToTickEnabled="True"
+                                            Value="{Binding DefaultOpacity, Mode=TwoWay}" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding DefaultOpacity, StringFormat={}{0}%}" Width="44"
+                                               TextAlignment="Right" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondary}"/>
+                                </StackPanel>
+
+                                <TextBlock Text="默认字号" Style="{StaticResource SettingsLabelStyle}" Margin="0,18,0,0"/>
+                                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                    <Slider Width="180" Minimum="10" Maximum="18" TickFrequency="0.5" IsSnapToTickEnabled="True"
+                                            Value="{Binding FontSize, Mode=TwoWay}" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding FontSize, StringFormat={}{0} pt}" Width="52"
+                                               TextAlignment="Right" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondary}"/>
+                                </StackPanel>
+
+                                <TextBlock Text="便签字体" Style="{StaticResource SettingsLabelStyle}" Margin="0,18,0,0"/>
+                                <ComboBox ItemsSource="{Binding NoteFontOptions}"
+                                          SelectedValue="{Binding NoteFont, Mode=TwoWay}"
+                                          SelectedValuePath="Value" DisplayMemberPath="Display"
+                                          Style="{StaticResource RoundedComboBoxStyle}"
+                                          Width="140" Height="30" Margin="0,8,0,0"
+                                          HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                            </StackPanel>
+
+                            <!-- 右：预览卡片 -->
+                            <StackPanel Grid.Column="1" Margin="24,0,0,0" VerticalAlignment="Top">
+                                <TextBlock Text="预览" Style="{StaticResource SettingsLabelStyle}" Margin="0,0,0,8"/>
+                                <Border Width="200" Height="120" CornerRadius="6"
+                                        Background="{Binding DefaultColor, Converter={StaticResource NoteColor}, ConverterParameter=Bg}"
+                                        BorderBrush="{Binding DefaultColor, Converter={StaticResource NoteColor}, ConverterParameter=Border}"
+                                        BorderThickness="1"
+                                        Opacity="{Binding PreviewOpacity}">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="22"/>
+                                            <RowDefinition Height="*"/>
+                                            <RowDefinition Height="16"/>
+                                        </Grid.RowDefinitions>
+
+                                        <!-- 标题栏 -->
+                                        <Border Grid.Row="0" Background="{Binding DefaultColor, Converter={StaticResource NoteColor}, ConverterParameter=Title}"
+                                                CornerRadius="6,6,0,0" Padding="8,0">
+                                            <TextBlock Text="便签标题" FontSize="{Binding TitleFontSize}" VerticalAlignment="Center"
+                                                       Foreground="{Binding DefaultColor, Converter={StaticResource NoteColor}, ConverterParameter=Text}"/>
+                                        </Border>
+
+                                        <!-- 内容区 -->
+                                        <Border Grid.Row="1" Padding="8,6">
+                                            <TextBlock Text="这里是一段便签内容预览" FontSize="{Binding FontSize}" TextWrapping="Wrap"
+                                                       Foreground="{Binding DefaultColor, Converter={StaticResource NoteColor}, ConverterParameter=Text}"/>
+                                        </Border>
+
+                                        <!-- 状态栏 -->
+                                        <Border Grid.Row="2" BorderBrush="{Binding DefaultColor, Converter={StaticResource NoteColor}, ConverterParameter=Border}"
+                                                BorderThickness="0,1,0,0" Padding="8,0">
+                                            <TextBlock Text="状态栏" FontSize="9" VerticalAlignment="Center"
+                                                       Foreground="{Binding DefaultColor, Converter={StaticResource NoteColor}, ConverterParameter=Text}"
+                                                       Opacity="0.7"/>
+                                        </Border>
+                                    </Grid>
+                                </Border>
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- 分隔线 -->
+                        <Border Height="1" Background="{DynamicResource BorderLight}" Margin="0,20,0,0"/>
+
+                        <!-- 分组3：关于便签外观 -->
+                        <TextBlock Text="关于便签外观" Style="{StaticResource SettingsGroupTitleStyle}" Margin="0,20,0,0"/>
+                        <TextBlock Text="便签颜色可在便签窗口右键菜单中单独修改，不影响默认值" Style="{StaticResource SettingsDescStyle}" Margin="0,8,0,0"/>
+
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- 快捷键设置 -->
+                <ScrollViewer x:Name="HotkeyPanel" VerticalScrollBarVisibility="Auto">
+                    <ScrollViewer.Style>
+                        <Style TargetType="ScrollViewer">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding CurrentCategory}" Value="快捷键">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </ScrollViewer.Style>
+                    <StackPanel DataContext="{Binding HotkeySettings}" Margin="24,20,24,24">
+
+                        <TextBlock Text="点击右侧按钮修改快捷键，按下新组合键后自动生效。按 Esc 取消。"
+                                   Style="{StaticResource SettingsDescStyle}"/>
+
+                        <!-- 分隔线 -->
+                        <Border Height="1" Background="{DynamicResource BorderLight}" Margin="0,16,0,0"/>
+
+                        <!-- 行1：新建便签 -->
+                        <Grid Margin="0,16,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <Path Data="{StaticResource IconPlus}" Width="15" Height="15" Stretch="Uniform"
+                                      Stroke="{DynamicResource TextSecondary}" StrokeThickness="1.2"
+                                      Fill="Transparent" VerticalAlignment="Center"/>
+                                <TextBlock Text="新建便签" Style="{StaticResource SettingsLabelStyle}" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,16,0">
+                                <TextBlock Text="{Binding NewNoteHotkeyDisplay}" Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding RecordingHotkey}" Value="hotkey.new_note">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                                <TextBlock Text="请按下新快捷键..." Foreground="{StaticResource BrandPrimary}" VerticalAlignment="Center">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding RecordingHotkey}" Value="hotkey.new_note">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </StackPanel>
+
+                            <Button Grid.Column="2" Content="修改" VerticalAlignment="Center"
+                                    Command="{Binding StartRecordingCommand}" CommandParameter="hotkey.new_note">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource BaseButtonStyle}">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding RecordingHotkey}" Value="hotkey.new_note">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                            <Button Grid.Column="2" Content="取消" VerticalAlignment="Center"
+                                    Command="{Binding CancelRecordingCommand}">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource BaseButtonStyle}">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding RecordingHotkey}" Value="hotkey.new_note">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                        </Grid>
+
+                        <!-- 行2：搜索便签 -->
+                        <Grid Margin="0,20,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <Path Data="{StaticResource IconSearch}" Width="15" Height="15" Stretch="Uniform"
+                                      Stroke="{DynamicResource TextSecondary}" StrokeThickness="1.2"
+                                      Fill="Transparent" VerticalAlignment="Center"/>
+                                <TextBlock Text="搜索便签" Style="{StaticResource SettingsLabelStyle}" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,16,0">
+                                <TextBlock Text="{Binding SearchHotkeyDisplay}" Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding RecordingHotkey}" Value="hotkey.search">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                                <TextBlock Text="请按下新快捷键..." Foreground="{StaticResource BrandPrimary}" VerticalAlignment="Center">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding RecordingHotkey}" Value="hotkey.search">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </StackPanel>
+
+                            <Button Grid.Column="2" Content="修改" VerticalAlignment="Center"
+                                    Command="{Binding StartRecordingCommand}" CommandParameter="hotkey.search">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource BaseButtonStyle}">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding RecordingHotkey}" Value="hotkey.search">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                            <Button Grid.Column="2" Content="取消" VerticalAlignment="Center"
+                                    Command="{Binding CancelRecordingCommand}">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource BaseButtonStyle}">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding RecordingHotkey}" Value="hotkey.search">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                        </Grid>
+
+                        <!-- 行3：显示隐藏全部 -->
+                        <Grid Margin="0,20,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <Path Data="{StaticResource IconAll}" Width="15" Height="15" Stretch="Uniform"
+                                      Stroke="{DynamicResource TextSecondary}" StrokeThickness="1.2"
+                                      Fill="Transparent" VerticalAlignment="Center"/>
+                                <TextBlock Text="显示隐藏全部" Style="{StaticResource SettingsLabelStyle}" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,16,0">
+                                <TextBlock Text="{Binding ToggleAllHotkeyDisplay}" Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding RecordingHotkey}" Value="hotkey.toggle_all">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                                <TextBlock Text="请按下新快捷键..." Foreground="{StaticResource BrandPrimary}" VerticalAlignment="Center">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding RecordingHotkey}" Value="hotkey.toggle_all">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </StackPanel>
+
+                            <Button Grid.Column="2" Content="修改" VerticalAlignment="Center"
+                                    Command="{Binding StartRecordingCommand}" CommandParameter="hotkey.toggle_all">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource BaseButtonStyle}">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding RecordingHotkey}" Value="hotkey.toggle_all">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                            <Button Grid.Column="2" Content="取消" VerticalAlignment="Center"
+                                    Command="{Binding CancelRecordingCommand}">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource BaseButtonStyle}">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding RecordingHotkey}" Value="hotkey.toggle_all">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                        </Grid>
+
+                        <!-- 冲突/占用警告 -->
+                        <TextBlock Text="{Binding ConflictMessage}" Foreground="{StaticResource Error}"
+                                   FontSize="11.5" TextWrapping="Wrap" Margin="0,14,0,0">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ConflictMessage}" Value="{x:Null}">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+
+                        <!-- 分隔线 -->
+                        <Border Height="1" Background="{DynamicResource BorderLight}" Margin="0,20,0,0"/>
+
+                        <TextBlock Text="部分快捷键可能被其他程序占用，如无法注册请更换组合键"
+                                   Style="{StaticResource SettingsDescStyle}" Margin="0,12,0,0"/>
+
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- 数据设置 -->
+                <ScrollViewer x:Name="DataPanel" VerticalScrollBarVisibility="Auto">
+                    <ScrollViewer.Style>
+                        <Style TargetType="ScrollViewer">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding CurrentCategory}" Value="数据">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </ScrollViewer.Style>
+                    <StackPanel DataContext="{Binding DataSettings}" Margin="24,20,24,24">
+
+                        <!-- 分组1：自动备份 -->
+                        <TextBlock Text="自动备份" Style="{StaticResource SettingsGroupTitleStyle}"/>
+
+                        <!-- 自动备份开关 -->
+                        <Grid Margin="0,14,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock Text="自动备份" Style="{StaticResource SettingsLabelStyle}"/>
+                                <TextBlock Text="定期将数据库复制到本地备份目录" Style="{StaticResource SettingsDescStyle}" Margin="0,2,0,0"/>
+                            </StackPanel>
+                            <CheckBox Grid.Column="1" Style="{StaticResource ToggleSwitchStyle}"
+                                      IsChecked="{Binding BackupEnabled, Mode=TwoWay}" VerticalAlignment="Center"/>
+                        </Grid>
+
+                        <!-- 备份间隔 -->
+                        <Grid Margin="0,16,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock Text="备份间隔" Style="{StaticResource SettingsLabelStyle}"/>
+                                <TextBlock Text="{Binding BackupIntervalDays, StringFormat='每 {0} 天自动备份一次'}"
+                                           Style="{StaticResource SettingsDescStyle}" Margin="0,2,0,0"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                <Slider Width="150" Minimum="1" Maximum="30" TickFrequency="1" IsSnapToTickEnabled="True"
+                                        Value="{Binding BackupIntervalDays, Mode=TwoWay}" VerticalAlignment="Center"/>
+                                <TextBlock Text="{Binding BackupIntervalDays, StringFormat={}{0} 天}" Width="44"
+                                           TextAlignment="Right" VerticalAlignment="Center"
+                                           Foreground="{DynamicResource TextSecondary}"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- 立即备份 + 打开备份文件夹 -->
+                        <StackPanel Orientation="Horizontal" Margin="0,18,0,0">
+                            <Button Content="立即备份" Style="{StaticResource PrimaryButton}"
+                                    Command="{Binding BackupNowCommand}"/>
+                            <Button Content="打开备份文件夹" Style="{StaticResource BaseButtonStyle}"
+                                    Command="{Binding OpenBackupFolderCommand}" Margin="8,0,0,0"/>
+                        </StackPanel>
+
+                        <!-- 分隔线 -->
+                        <Border Height="1" Background="{DynamicResource BorderLight}" Margin="0,20,0,0"/>
+
+                        <!-- 分组2：备份管理 -->
+                        <TextBlock Text="备份管理" Style="{StaticResource SettingsGroupTitleStyle}" Margin="0,20,0,0"/>
+
+                        <!-- 空状态 -->
+                        <TextBlock Text="暂无备份文件" Margin="0,10,0,0">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource SettingsDescStyle}">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding HasBackups}" Value="False">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+
+                        <!-- 备份文件列表 -->
+                        <ListBox ItemsSource="{Binding BackupList}" MaxHeight="160" Margin="0,10,0,0"
+                                 Background="Transparent" BorderThickness="0"
+                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                 ScrollViewer.VerticalScrollBarVisibility="Auto">
+                            <ListBox.ItemContainerStyle>
+                                <Style TargetType="ListBoxItem">
+                                    <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                    <Setter Property="Padding" Value="0"/>
+                                    <Setter Property="Margin" Value="0,0,0,8"/>
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="ListBoxItem">
+                                                <Border x:Name="Bd" Background="Transparent" Padding="{TemplateBinding Padding}">
+                                                    <ContentPresenter/>
+                                                </Border>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter TargetName="Bd" Property="Background" Value="#0A000000"/>
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Style>
+                            </ListBox.ItemContainerStyle>
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding FileName}" Style="{StaticResource SettingsLabelStyle}"
+                                                       TextTrimming="CharacterEllipsis"/>
+                                            <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                                                <TextBlock Text="{Binding CreatedAt, StringFormat={}{0:yyyy-MM-dd HH:mm:ss}}"
+                                                           Style="{StaticResource SettingsDescStyle}"/>
+                                                <TextBlock Text=" · " Style="{StaticResource SettingsDescStyle}"/>
+                                                <TextBlock Text="{Binding SizeBytes, Converter={StaticResource ByteSize}}"
+                                                           Style="{StaticResource SettingsDescStyle}"/>
+                                            </StackPanel>
+                                        </StackPanel>
+                                        <Button Grid.Column="1" Content="恢复" VerticalAlignment="Center" Margin="12,0,0,0"
+                                                Command="{Binding DataContext.RestoreBackupCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                                CommandParameter="{Binding FilePath}">
+                                            <Button.Style>
+                                                <Style TargetType="Button" BasedOn="{StaticResource BaseButtonStyle}">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Button.Style>
+                                        </Button>
+                                    </Grid>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+
+                        <!-- 分隔线 -->
+                        <Border Height="1" Background="{DynamicResource BorderLight}" Margin="0,20,0,0"/>
+
+                        <!-- 分组3：数据管理 -->
+                        <TextBlock Text="数据管理" Style="{StaticResource SettingsGroupTitleStyle}" Margin="0,20,0,0"/>
+
+                        <!-- 导入 / 导出：导入用于换机迁移与从其他软件搬过来 -->
+                        <TextBlock Text="把「导出为 JSON」生成的文件导回来即可还原便签（相同便签会自动跳过，不会覆盖现有内容）。"
+                                   Style="{StaticResource SettingsDescStyle}" Margin="0,14,0,0" TextWrapping="Wrap"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                            <Button Content="导出为 JSON" Style="{StaticResource BaseButtonStyle}"
+                                    Command="{Binding ExportJsonCommand}"/>
+                            <Button Content="导入 JSON" Style="{StaticResource BaseButtonStyle}"
+                                    Command="{Binding ImportJsonCommand}" Margin="8,0,0,0"/>
+                            <Button Content="导入 Markdown / 文本" Style="{StaticResource BaseButtonStyle}"
+                                    Command="{Binding ImportTextFilesCommand}" Margin="8,0,0,0"/>
+                        </StackPanel>
+                        <TextBlock Text="导入 Markdown / 文本时，每个文件生成一条便签；文件首行若是「# 标题」会作为便签标题，否则使用文件名。"
+                                   Style="{StaticResource SettingsDescStyle}" Margin="0,6,0,0" TextWrapping="Wrap"/>
+
+                        <!-- 清空回收站 -->
+                        <Button Content="清空回收站" Style="{StaticResource DangerButton}"
+                                Command="{Binding ClearTrashCommand}" HorizontalAlignment="Left" Margin="0,10,0,0"/>
+
+                        <!-- 回收站保留天数 -->
+                        <Grid Margin="0,16,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock Text="回收站保留天数" Style="{StaticResource SettingsLabelStyle}"/>
+                                <TextBlock Text="{Binding RetainDays, StringFormat='删除的便签在回收站保留 {0} 天，超期后启动时自动清理'}"
+                                           Style="{StaticResource SettingsDescStyle}" Margin="0,2,0,0"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                <Slider Width="150" Minimum="7" Maximum="90" TickFrequency="1" IsSnapToTickEnabled="True"
+                                        Value="{Binding RetainDays, Mode=TwoWay}" VerticalAlignment="Center"/>
+                                <TextBlock Text="{Binding RetainDays, StringFormat={}{0} 天}" Width="44"
+                                           TextAlignment="Right" VerticalAlignment="Center"
+                                           Foreground="{DynamicResource TextSecondary}"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- 分隔线 -->
+                        <Border Height="1" Background="{DynamicResource BorderLight}" Margin="0,20,0,0"/>
+
+                        <!-- 分组4：附件管理 -->
+                        <TextBlock Text="附件管理" Style="{StaticResource SettingsGroupTitleStyle}" Margin="0,20,0,0"/>
+
+                        <!-- 附件总量 -->
+                        <Grid Margin="0,14,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock Text="图片附件占用" Style="{StaticResource SettingsLabelStyle}"/>
+                                <TextBlock Text="{Binding AttachmentTotalText}"
+                                           Style="{StaticResource SettingsDescStyle}" Margin="0,2,0,0"/>
+                                <TextBlock Text="图片随数据库一起备份，清理前请先确认备份是新的。"
+                                           Style="{StaticResource SettingsDescStyle}" Margin="0,2,0,0"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- 孤儿附件（所属便签已被永久删除，但图片还留在库里） -->
+                        <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
+                            <StackPanel.Style>
+                                <Style TargetType="StackPanel">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding HasOrphanAttachments}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </StackPanel.Style>
+                            <StackPanel Width="420">
+                                <TextBlock Text="失去关联的图片" Style="{StaticResource SettingsLabelStyle}"/>
+                                <TextBlock Text="{Binding AttachmentOrphanText}"
+                                           Style="{StaticResource SettingsDescStyle}" Margin="0,2,0,0"
+                                           TextWrapping="Wrap"/>
+                                <Button Content="清理失去关联的图片" Style="{StaticResource DangerButton}"
+                                        Command="{Binding CleanOrphanAttachmentsCommand}"
+                                        HorizontalAlignment="Left" Margin="0,8,0,0"/>
+                            </StackPanel>
+                        </StackPanel>
+
+                        <!-- 无孤儿时的安心提示 -->
+                        <TextBlock>
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource SettingsDescStyle}">
+                                    <Setter Property="Text" Value="所有图片都有关联的便签，无需清理。"/>
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding HasOrphanAttachments}" Value="False">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- 关于 -->
+                <ScrollViewer x:Name="AboutPanel" VerticalScrollBarVisibility="Auto">
+                    <ScrollViewer.Style>
+                        <Style TargetType="ScrollViewer">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding CurrentCategory}" Value="关于">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </ScrollViewer.Style>
+                    <StackPanel DataContext="{Binding About}" Margin="24,24,24,24" HorizontalAlignment="Center">
+
+                        <!-- 应用图标（128×128 便签形状） -->
+                        <Border Width="128" Height="128" CornerRadius="16" Background="{StaticResource BrandPrimary}">
+                            <Grid>
+                                <Rectangle Fill="White" Width="64" Height="10" RadiusX="5" RadiusY="5"
+                                           HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,36,0,0"/>
+                                <Rectangle Fill="White" Width="64" Height="10" RadiusX="5" RadiusY="5"
+                                           HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,58,0,0"/>
+                                <Rectangle Fill="White" Width="40" Height="10" RadiusX="5" RadiusY="5"
+                                           HorizontalAlignment="Left" VerticalAlignment="Top" Margin="32,80,0,0"/>
+                            </Grid>
+                        </Border>
+
+                        <!-- 应用名称 -->
+                        <TextBlock Text="今日营业中" FontSize="24" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}"
+                                   HorizontalAlignment="Center" Margin="0,20,0,0"/>
+
+                        <!-- 创作者 -->
+                        <TextBlock Text="by 苏羽野" FontSize="13" Foreground="{DynamicResource TextSecondary}"
+                                   HorizontalAlignment="Center" Margin="0,6,0,0"/>
+
+                        <!-- 版本号 -->
+                        <TextBlock Text="{Binding Version}" FontSize="11.5" Foreground="{DynamicResource TextPlaceholder}"
+                                   HorizontalAlignment="Center" Margin="0,4,0,0"/>
+
+                        <!-- 品牌介绍 -->
+                        <TextBlock Text="你的桌面便签小店，每天为你开张。&#10;记录灵感、整理思绪、提醒重要时刻，&#10;让每一个平凡的日子都井井有条。"
+                                   FontSize="13" Foreground="#333333" TextAlignment="Center" LineHeight="22"
+                                   Margin="0,18,0,0"/>
+                        <TextBlock Text="—— C·H 邮政公司 · 自动手记人偶系统" FontSize="12"
+                                   Foreground="{StaticResource BrandPrimary}" TextAlignment="Center" Margin="0,8,0,0"/>
+
+                        <!-- 免费声明 -->
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,8,0,0">
+                            <Path Data="{StaticResource IconGift}" Width="13" Height="13" Stretch="Uniform"
+                                  Stroke="{StaticResource BrandPrimary}" StrokeThickness="1.3" Fill="Transparent"
+                                  VerticalAlignment="Center"/>
+                            <TextBlock Text="免费软件 · 无广告 · 无内购 · 开源" FontSize="11.5" Foreground="{StaticResource BrandPrimary}"
+                                       Margin="6,0,0,0" VerticalAlignment="Center"/>
+                        </StackPanel>
+
+                        <!-- 分隔线 -->
+                        <Border Height="1" Background="{DynamicResource BorderLight}" Margin="0,20,0,0" Width="320"/>
+
+                        <!-- 技术栈 -->
+                        <StackPanel HorizontalAlignment="Center" Margin="0,16,0,0">
+                            <TextBlock Text="基于 WPF + .NET 10 构建" Style="{StaticResource SettingsDescStyle}" HorizontalAlignment="Center"/>
+                            <TextBlock Text="数据库：SQLite" Style="{StaticResource SettingsDescStyle}" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                            <TextBlock Text="依赖：CommunityToolkit.Mvvm / H.NotifyIcon / Serilog" Style="{StaticResource SettingsDescStyle}"
+                                       HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                        </StackPanel>
+
+                        <!-- 开源许可 -->
+                        <TextBlock HorizontalAlignment="Center" Margin="0,12,0,0" FontSize="11.5">
+                            <Hyperlink NavigateUri="https://opensource.org/licenses/MIT" RequestNavigate="OnLicenseRequestNavigate"
+                                       Foreground="{StaticResource BrandPrimary}" TextDecorations="None">
+                                开源许可：MIT License
+                            </Hyperlink>
+                        </TextBlock>
+
+                        <!-- 分隔线 -->
+                        <Border Height="1" Background="{DynamicResource BorderLight}" Margin="0,20,0,0" Width="320"/>
+
+                        <!-- 检查更新 -->
+                        <Button Content="检查更新" Style="{StaticResource BaseButtonStyle}"
+                                Command="{Binding CheckUpdateCommand}" HorizontalAlignment="Center" Margin="0,16,0,0"/>
+
+                        <!-- 版权 -->
+                        <TextBlock Text="© 2026 苏羽野. All rights reserved." FontSize="10.5"
+                                   Foreground="{DynamicResource TextPlaceholder}" HorizontalAlignment="Center" Margin="0,20,0,0"/>
+
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- 占位（所有分类均已接入面板，此占位仅在未知分类时兜底显示） -->
+                <TextBlock x:Name="PlaceholderContent" Text="{Binding CurrentCategory, StringFormat={}{0}设置内容}"
+                           FontSize="12" Foreground="{DynamicResource TextPlaceholder}"
+                           Margin="24,20,24,0" HorizontalAlignment="Left" VerticalAlignment="Top">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Visibility" Value="Visible"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding CurrentCategory}" Value="通用">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding CurrentCategory}" Value="外观">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding CurrentCategory}" Value="快捷键">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding CurrentCategory}" Value="数据">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding CurrentCategory}" Value="关于">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+
+            </Grid>
+        </Grid>
+    </Grid>
+</Window>

@@ -1,0 +1,75 @@
+<Window x:Class="NoteApp.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="今日营业中 - 资源测试"
+        Width="500" Height="440"
+        Background="{DynamicResource BgPage}"
+        Foreground="{DynamicResource TextPrimary}"
+        FontFamily="{StaticResource BaseFontFamily}"
+        FontSize="12.5">
+
+    <StackPanel Margin="24" VerticalAlignment="Top">
+
+        <TextBlock Text="资源字典测试" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,20"/>
+
+        <!-- 按钮 -->
+        <TextBlock Text="按钮" FontWeight="SemiBold" Margin="0,0,0,8"/>
+        <StackPanel Orientation="Horizontal">
+            <Button Content="主要按钮" Style="{StaticResource PrimaryButton}" Margin="0,0,8,0"/>
+            <Button Content="危险按钮" Style="{StaticResource DangerButton}" Margin="0,0,8,0"/>
+            <Button Content="次按钮" Style="{StaticResource BaseButtonStyle}" Margin="0,0,8,0"/>
+            <Button Content="禁用" Style="{StaticResource BaseButtonStyle}" IsEnabled="False"/>
+        </StackPanel>
+
+        <!-- 输入框 -->
+        <TextBlock Text="输入框" FontWeight="SemiBold" Margin="0,20,0,8"/>
+        <TextBox Style="{StaticResource BaseTextBoxStyle}" Width="220" HorizontalAlignment="Left"
+                 Text="可编辑文本"/>
+
+        <!-- 开关 -->
+        <TextBlock Text="开关" FontWeight="SemiBold" Margin="0,20,0,8"/>
+        <StackPanel Orientation="Horizontal">
+            <CheckBox Style="{StaticResource ToggleSwitchStyle}" IsChecked="True" Margin="0,0,12,0"/>
+            <CheckBox Style="{StaticResource ToggleSwitchStyle}" IsChecked="False"/>
+        </StackPanel>
+
+        <!-- 图标 -->
+        <TextBlock Text="图标" FontWeight="SemiBold" Margin="0,20,0,8"/>
+        <WrapPanel>
+            <Path Data="{StaticResource IconMore}" Width="16" Height="16" Stretch="Uniform"
+                  Fill="{DynamicResource TextSecondary}" Margin="4" ToolTip="IconMore"/>
+            <Path Data="{StaticResource IconMinimize}" Width="16" Height="16" Stretch="Uniform"
+                  Stroke="{DynamicResource TextSecondary}" StrokeThickness="1.2" Fill="Transparent" Margin="4" ToolTip="IconMinimize"/>
+            <Path Data="{StaticResource IconPin}" Width="16" Height="16" Stretch="Uniform"
+                  Stroke="{DynamicResource TextSecondary}" StrokeThickness="1.2" Fill="Transparent" Margin="4" ToolTip="IconPin"/>
+            <Path Data="{StaticResource IconClose}" Width="16" Height="16" Stretch="Uniform"
+                  Stroke="{DynamicResource TextSecondary}" StrokeThickness="1.2" Fill="Transparent" Margin="4" ToolTip="IconClose"/>
+            <Path Data="{StaticResource IconSearch}" Width="16" Height="16" Stretch="Uniform"
+                  Stroke="{DynamicResource TextSecondary}" StrokeThickness="1.2" Fill="Transparent" Margin="4" ToolTip="IconSearch"/>
+            <Path Data="{StaticResource IconPlus}" Width="16" Height="16" Stretch="Uniform"
+                  Stroke="{DynamicResource TextSecondary}" StrokeThickness="1.2" Fill="Transparent" Margin="4" ToolTip="IconPlus"/>
+            <Path Data="{StaticResource IconSettings}" Width="16" Height="16" Stretch="Uniform"
+                  Stroke="{DynamicResource TextSecondary}" StrokeThickness="1.2" Fill="Transparent" Margin="4" ToolTip="IconSettings"/>
+            <Path Data="{StaticResource IconLock}" Width="16" Height="16" Stretch="Uniform"
+                  Stroke="{DynamicResource TextSecondary}" StrokeThickness="1.2" Fill="Transparent" Margin="4" ToolTip="IconLock"/>
+            <Path Data="{StaticResource IconTrash}" Width="16" Height="16" Stretch="Uniform"
+                  Stroke="{DynamicResource TextSecondary}" StrokeThickness="1.2" Fill="Transparent" Margin="4" ToolTip="IconTrash"/>
+            <Path Data="{StaticResource IconArchive}" Width="16" Height="16" Stretch="Uniform"
+                  Stroke="{DynamicResource TextSecondary}" StrokeThickness="1.2" Fill="Transparent" Margin="4" ToolTip="IconArchive"/>
+            <Path Data="{StaticResource IconReminder}" Width="16" Height="16" Stretch="Uniform"
+                  Stroke="{DynamicResource TextSecondary}" StrokeThickness="1.2" Fill="Transparent" Margin="4" ToolTip="IconReminder"/>
+        </WrapPanel>
+
+        <!-- 便签窗口测试 -->
+        <TextBlock Text="便签窗口测试（点击打开对应颜色便签）" FontWeight="SemiBold" Margin="0,20,0,8"/>
+        <WrapPanel>
+            <Button Content="米黄" Tag="Yellow" Click="OpenTestNote_Click" Style="{StaticResource BaseButtonStyle}" Margin="0,0,8,8"/>
+            <Button Content="薄荷绿" Tag="Green" Click="OpenTestNote_Click" Style="{StaticResource BaseButtonStyle}" Margin="0,0,8,8"/>
+            <Button Content="雾霾蓝" Tag="Blue" Click="OpenTestNote_Click" Style="{StaticResource BaseButtonStyle}" Margin="0,0,8,8"/>
+            <Button Content="豆沙粉" Tag="Pink" Click="OpenTestNote_Click" Style="{StaticResource BaseButtonStyle}" Margin="0,0,8,8"/>
+            <Button Content="紫罗兰" Tag="Purple" Click="OpenTestNote_Click" Style="{StaticResource BaseButtonStyle}" Margin="0,0,8,8"/>
+            <Button Content="高级灰" Tag="Gray" Click="OpenTestNote_Click" Style="{StaticResource BaseButtonStyle}" Margin="0,0,8,8"/>
+        </WrapPanel>
+
+    </StackPanel>
+</Window>

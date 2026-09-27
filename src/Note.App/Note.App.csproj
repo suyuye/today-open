@@ -1,0 +1,80 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>NoteApp</RootNamespace>
+    <AssemblyName>Note.App</AssemblyName>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+
+    <!-- 版本信息与元数据 -->
+    <Version>1.5.3</Version>
+    <AssemblyVersion>1.5.3.0</AssemblyVersion>
+    <FileVersion>1.5.3.0</FileVersion>
+    <Product>今日营业中</Product>
+    <Company>苏羽野</Company>
+    <Copyright>Copyright © 2026 苏羽野</Copyright>
+    <Description>今日营业中 - 桌面便签软件</Description>
+    <NeutralLanguage>zh-CN</NeutralLanguage>
+
+    <!-- 高 DPI 支持 -->
+    <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+
+    <!-- 单文件发布时包含内容文件 -->
+    <IncludeContentInSingleFile>true</IncludeContentInSingleFile>
+
+    <!-- 应用图标（嵌入 exe，资源管理器中显示） -->
+    <ApplicationIcon>Assets\app.ico</ApplicationIcon>
+
+    <!-- 只保留中文语言资源，减少发布体积 -->
+    <SatelliteResourceLanguages>zh-Hans</SatelliteResourceLanguages>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- MVVM 工具包（微软官方，源生成器） -->
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.2" />
+
+    <!-- SQLite 数据访问 -->
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.0" />
+    <!-- 覆盖 Microsoft.Data.Sqlite 的传递依赖，修复 SQLitePCLRaw 2.1.11 高危漏洞 (GHSA-2m69-gcr7-jv3q) -->
+    <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="2.1.13" />
+
+    <!-- 依赖注入 -->
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0" />
+
+    <!-- 配置 -->
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.0" />
+
+    <!-- 系统托盘 -->
+    <PackageReference Include="H.NotifyIcon.Wpf" Version="2.0.111" />
+
+    <!-- 日志 -->
+    <PackageReference Include="Serilog" Version="3.1.1" />
+    <PackageReference Include="Serilog.Sinks.File" Version="5.0.0" />
+    <PackageReference Include="Serilog.Sinks.Debug" Version="2.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 将配置文件复制到输出目录，供 ConfigurationBuilder 读取 -->
+    <None Update="appsettings.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 应用图标：作为 WPF 资源打包，供窗口 Icon 与托盘图标经 pack URI 访问 -->
+    <Resource Include="Assets\app.ico" />
+    <!-- 霞鹜文楷 Lite 手写字体：作为 WPF 资源打包，供 FontFamily pack URI 访问 -->
+    <Resource Include="Fonts\LXGWWenKaiLite.ttf" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 单元测试需要直接实例化 DockController（internal），所以开放内部可见性。
+         之所以做成进程内测试：本机沙箱里合成鼠标事件进不了 WPF 输入管线，
+         无法从外部驱动拖动，只能直接构造 Window 来验证贴边行为。 -->
+    <InternalsVisibleTo Include="Note.App.Tests" />
+  </ItemGroup>
+
+</Project>

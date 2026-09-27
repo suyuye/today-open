@@ -1,0 +1,4262 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>今日营业中・桌面便签软件完整开发文档</title>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+            line-height: 1.8;
+            color: #333;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px;
+            background: #fff;
+        }
+        h1, h2, h3, h4 {
+            color: #2c3e50;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+            margin-top: 30px;
+        }
+        h1 { font-size: 28px; border-bottom-color: #E8743B; }
+        h2 { font-size: 22px; }
+        h3 { font-size: 18px; }
+        code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Consolas', monospace;
+            font-size: 14px;
+        }
+        pre {
+            background: #f4f4f4;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        pre code {
+            background: none;
+            padding: 0;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background: #f8f8f8;
+            font-weight: bold;
+        }
+        blockquote {
+            border-left: 4px solid #E8743B;
+            margin: 0;
+            padding: 10px 20px;
+            background: #f9f9f9;
+            color: #666;
+        }
+        a {
+            color: #E8743B;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        ul, ol {
+            padding-left: 30px;
+        }
+        li {
+            margin: 5px 0;
+        }
+        hr {
+            border: none;
+            border-top: 1px solid #eee;
+            margin: 30px 0;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+        }
+        @media print {
+            body {
+                padding: 20px;
+            }
+            h1, h2, h3 {
+                page-break-after: avoid;
+            }
+            pre, table {
+                page-break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+<h1 id="section">今日营业中・桌面便签软件完整开发文档</h1>
+<blockquote>
+<p><strong>版本</strong>：v1.5.3
+<strong>更新日期</strong>：2026-09-27
+<strong>创作者</strong>：苏羽野
+<strong>开源协议</strong>：MIT
+<strong>适用范围</strong>：产品设计、技术方案、开发流程、打包发布全流程参考</p>
+</blockquote>
+<hr />
+<h2 id="section-1">目录</h2>
+<h3 id="section-2">第一部分：产品设计</h3>
+<ol>
+<li><a href="#1-%E4%BA%A7%E5%93%81%E6%A6%82%E8%BF%B0">产品概述</a></li>
+<li><a href="#2-%E8%AE%BE%E8%AE%A1%E5%8E%9F%E5%88%99">设计原则</a></li>
+<li><a href="#3-design-token">Design Token</a>
+<ul>
+<li>3.1 色彩系统</li>
+<li>3.2 字体系统</li>
+<li>3.3 圆角规范</li>
+<li>3.4 阴影规范</li>
+<li>3.5 间距系统</li>
+<li>3.6 透明度规范</li>
+</ul>
+</li>
+<li><a href="#4-%E7%BB%84%E4%BB%B6%E5%BA%93">组件库</a></li>
+<li><a href="#5-%E5%B8%83%E5%B1%80%E8%A7%84%E8%8C%83">布局规范</a></li>
+<li><a href="#6-%E4%BE%BF%E7%AD%BE%E7%AA%97%E5%8F%A3%E4%B8%93%E9%A1%B9%E8%A7%84%E8%8C%83">便签窗口专项规范</a></li>
+</ol>
+<h3 id="section-3">第二部分：技术方案</h3>
+<ol>
+<li><a href="#7-%E6%8A%80%E6%9C%AF%E9%80%89%E5%9E%8B%E5%86%B3%E7%AD%96">技术选型决策</a></li>
+<li><a href="#8-%E6%95%B0%E6%8D%AE%E5%BA%93%E8%AE%BE%E8%AE%A1">数据库设计</a></li>
+<li><a href="#9-%E9%A1%B9%E7%9B%AE%E7%BB%93%E6%9E%84%E8%A7%84%E8%8C%83">项目结构规范</a></li>
+<li><a href="#10-%E6%A0%B8%E5%BF%83%E6%A8%A1%E5%9D%97%E6%8E%A5%E5%8F%A3">核心模块接口</a></li>
+<li><a href="#11-%E5%85%B3%E9%94%AE%E6%8A%80%E6%9C%AF%E6%96%B9%E6%A1%88">关键技术方案</a></li>
+</ol>
+<h3 id="section-4">第三部分：开发流程</h3>
+<ol>
+<li><a href="#12-phase-0%E9%A1%B9%E7%9B%AE%E9%AA%A8%E6%9E%B6">Phase 0：项目骨架</a></li>
+<li><a href="#13-phase-1%E6%95%B0%E6%8D%AE%E5%B1%82">Phase 1：数据层</a></li>
+<li><a href="#14-phase-2%E4%BE%BF%E7%AD%BE%E7%AA%97%E5%8F%A3-ui">Phase 2：便签窗口 UI</a></li>
+<li><a href="#15-phase-3%E7%AA%97%E5%8F%A3%E7%AE%A1%E7%90%86--%E7%B3%BB%E7%BB%9F%E9%9B%86%E6%88%90">Phase 3：窗口管理 + 系统集成</a></li>
+<li><a href="#16-phase-4%E4%BE%BF%E7%AD%BE%E5%88%97%E8%A1%A8%E9%9D%A2%E6%9D%BF">Phase 4：便签列表面板</a></li>
+<li><a href="#17-phase-5%E8%AE%BE%E7%BD%AE%E9%A1%B5">Phase 5：设置页</a></li>
+<li><a href="#18-phase-6%E6%8F%90%E9%86%92%E5%8A%9F%E8%83%BD">Phase 6：提醒功能</a></li>
+<li><a href="#19-phase-65%E4%BC%98%E5%8C%96%E4%B8%8E%E5%AE%8C%E5%96%84">Phase 6.5：优化与完善</a></li>
+<li><a href="#20-phase-7%E6%89%93%E5%8C%85%E5%8F%91%E5%B8%83">Phase 7：打包发布</a></li>
+</ol>
+<h3 id="section-5">第四部分：附录</h3>
+<ol>
+<li><a href="#21-%E5%85%B3%E9%94%AE%E6%8A%80%E6%9C%AF%E5%86%B3%E7%AD%96%E8%AE%B0%E5%BD%95">关键技术决策记录</a></li>
+<li><a href="#22-%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98%E4%B8%8E%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88">常见问题与解决方案</a></li>
+<li><a href="#23-%E5%BC%80%E5%8F%91%E7%8E%AF%E5%A2%83%E9%85%8D%E7%BD%AE">开发环境配置</a></li>
+<li><a href="#24-v110-%E7%BB%B4%E6%8A%A4%E9%98%B6%E6%AE%B5%E6%9B%B4%E6%96%B0%E8%AF%B4%E6%98%8E">v1.1.0 维护阶段更新说明</a></li>
+<li><a href="#25-v111-%E7%BB%B4%E6%8A%A4%E9%98%B6%E6%AE%B5%E6%9B%B4%E6%96%B0%E8%AF%B4%E6%98%8E">v1.1.1 维护阶段更新说明</a></li>
+<li><a href="#26-v120--v153-%E7%BB%B4%E6%8A%A4%E9%98%B6%E6%AE%B5%E6%9B%B4%E6%96%B0%E8%AF%B4%E6%98%8E">v1.2.0 ~ v1.5.3 维护阶段更新说明</a></li>
+</ol>
+<hr />
+<h2 id="section-6">文档修订记录</h2>
+<table>
+<thead>
+<tr>
+<th>版本</th>
+<th>日期</th>
+<th>主要变更</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>v1.5.3</td>
+<td>2026-09-27</td>
+<td>极简模式缩放规则修复、设置窗口自绘标题栏、图片附件管理页（存储统计 / 孤儿清理）、主页悬浮按钮调整、双击便签崩溃修复（TreeWalker 收口）、NoteWindow 拆分 5 个 partial</td>
+</tr>
+<tr>
+<td>v1.5.2</td>
+<td>2026-09-27</td>
+<td>极简模式右键弹出完整菜单修复（<code>ContextMenuOpening</code> 已处理事件订阅）</td>
+</tr>
+<tr>
+<td>v1.5.1</td>
+<td>2026-09-27</td>
+<td>卷角（DogEar，色彩自洽）、相对时间移至左下、内容区底部让位</td>
+</tr>
+<tr>
+<td>v1.5.0</td>
+<td>2026-09-27</td>
+<td>编辑器 ViewModel 基类 <code>NoteEditorViewModelBase</code> 收口两份重复代码、颜色取值失败兜底（不再全透明）</td>
+</tr>
+<tr>
+<td>v1.4.1</td>
+<td>2026-09-26</td>
+<td>拖到边缘即贴边（免先开菜单）、吸附距离 16→28px、唤醒区 20→36px、贴边预览提示、就近边判定</td>
+</tr>
+<tr>
+<td>v1.4.0</td>
+<td>2026-09-26</td>
+<td>贴边收纳（Dock）：拖到屏幕左右边缘收成 5px 细条，悬停唤出，默认关闭</td>
+</tr>
+<tr>
+<td>v1.3.0</td>
+<td>2026-09-26</td>
+<td>图片附件：BLOB 入库（随备份走）、缩略图条、Ctrl+V 粘贴图片、长边 ≤1600px 等比缩小</td>
+</tr>
+<tr>
+<td>v1.2.0</td>
+<td>2026-09-25</td>
+<td>导入 JSON / Markdown / 文本、按颜色 / 标签 / 时间范围筛选、搜索关键词高亮、回收站保留天数生效、<code>VACUUM INTO</code> 快照备份、恢复流程重做</td>
+</tr>
+<tr>
+<td>v1.1.1</td>
+<td>2026-09-22</td>
+<td>快捷键修复（Ctrl+C/X）、选区性能修复、行尾选字修复、UI 美化（对比度 / 行高 / 待办复选框 / 12 色色板 / 暖色阴影 / 折叠态 / 锁定态 / 纸张质感）</td>
+</tr>
+<tr>
+<td>v1.1.0</td>
+<td>2026-09-11</td>
+<td>待办事项、标签系统、主页编辑区、单栏标题栏、霞鹜文楷字体、浅色主题</td>
+</tr>
+<tr>
+<td>v1.1.0</td>
+<td>2026-09-10</td>
+<td>完成 Phase 0～7 全流程开发与打包发布</td>
+</tr>
+<tr>
+<td>v1.0.0</td>
+<td>2026-09-07</td>
+<td>初始版本发布</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="section-7">第一部分：产品设计</h2>
+<h2 id="section-8">1. 产品概述</h2>
+<p><strong>今日营业中</strong>是一款免费、开源的 Windows 桌面便签软件，主打 &quot;轻量、快速、有温度&quot; 的便签体验。</p>
+<h3 id="section-9">核心功能</h3>
+<ul>
+<li>桌面便签：随时记录，自动保存</li>
+<li>置顶不抢焦点：便签常驻桌面不打扰工作</li>
+<li>折叠与锁定：折叠节省空间，锁定防止误触</li>
+<li>透明度调节：半透明便签温柔融入桌面</li>
+<li>十二种便签色：米黄 / 薄荷绿 / 雾霾蓝 / 豆沙粉 / 紫罗兰 / 高级灰，每色相含深浅两档</li>
+<li>纸张质感：微纸纤维 + 顶部光照 + 纸边厚度，三种半透明叠加</li>
+<li>待办事项：轻量 Markdown 语法（<code>- [ ]</code> / <code>- [x]</code>），自绘复选框</li>
+<li>提醒服务：单次 / 每日 / 每周 / 工作日 / 每月</li>
+<li>标签分类：给便签打上标签，灵活整理归档</li>
+<li>信件管理面板：搜索、筛选、批量管理所有便签</li>
+<li>图片附件（v1.3.0）：粘贴 / 选择图片入库，缩略图条展示，随备份自动走</li>
+<li>贴边收纳（v1.4.0）：拖到屏幕边缘收成细条，悬停唤出（默认关闭，按便签开启）</li>
+<li>卷角（v1.5.1）：右下角折起一小块，颜色从便签自身推出（默认关闭）</li>
+<li>数据导入（v1.2.0）：JSON / Markdown / 文本导回，按颜色 / 标签 / 时间筛选，搜索关键词高亮</li>
+<li>系统托盘：最小化到托盘，不占任务栏空间</li>
+<li>全局快捷键：一键新建，随时唤出</li>
+<li>开机自启：可选设置</li>
+<li>极简模式：桌面磁贴显示</li>
+</ul>
+<h3 id="section-10">设计风格</h3>
+<p><strong>现代纸张融合风</strong> — 便签本体用莫兰迪色 + 微纸质感，控制面板用浅色纯色背景（原计划 Mica 材质，因 WPF 兼容性问题放弃）。</p>
+<blockquote>
+<p><strong>v1.1.1 补充</strong>：便签的&quot;纸感&quot;从早期规划的&quot;纯色块&quot;演进为<strong>纯 WPF 绘制的三层质感叠加</strong>。之所以不用系统材质，见 <a href="#1110-%E7%BA%B8%E5%BC%A0%E8%B4%A8%E6%84%9F%E5%AE%9E%E7%8E%B0%E7%BA%AF-wpf-%E7%BB%98%E5%88%B6">§11.10 纸张质感实现</a>。</p>
+</blockquote>
+<hr />
+<h2 id="section-11">2. 设计原则</h2>
+<table>
+<thead>
+<tr>
+<th>原则</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>输入即保存</strong></td>
+<td>没有保存按钮，打字自动落库，降低认知负担</td>
+</tr>
+<tr>
+<td><strong>常驻不打扰</strong></td>
+<td>置顶但不抢焦点，悬停才显示控制按钮，默认界面干净</td>
+</tr>
+<tr>
+<td><strong>操作可撤销</strong></td>
+<td>删除走回收站，误删可恢复；所有设置即时生效</td>
+</tr>
+<tr>
+<td><strong>纸张温度感</strong></td>
+<td>便签本体保留便利贴的隐喻：柔和色彩、微纸质感、圆角</td>
+</tr>
+<tr>
+<td><strong>系统一致性</strong></td>
+<td>控制面板、列表、设置页使用浅色纯色背景，和 Windows 11 视觉风格协调</td>
+</tr>
+<tr>
+<td><strong>键盘优先</strong></td>
+<td>常用操作都有快捷键，鼠标是补充</td>
+</tr>
+<tr>
+<td><strong>色彩自洽</strong></td>
+<td>与便签相关的所有颜色都从便签自身的色板取值，不引入无关色相</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>v1.1.1 补充「色彩自洽」原则</strong>：这条原则是从两次翻车里总结出来的 ——
+① 便签阴影原本用纯黑，压在彩色纸上会让边缘发脏灰 → 改为跟色相的暖色阴影；
+② 折叠态待办徽标原本用品牌橙 <code>#E8743B</code>，与便签配色无关，视觉上像&quot;外来的通知&quot;。
+<strong>凡是长在便签上的元素，颜色都应当能从这张便签自己身上找到出处。</strong></p>
+</blockquote>
+<hr />
+<h2 id="design-token">3. Design Token</h2>
+<h3 id="section-12">3.1 色彩系统</h3>
+<h4 id="section-13">3.1.1 品牌与语义色</h4>
+<table>
+<thead>
+<tr>
+<th>Token 名称</th>
+<th>色值</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>BrandPrimary</code></td>
+<td><code>#E8743B</code></td>
+<td>主按钮、选中态、置顶标识、提醒、链接</td>
+</tr>
+<tr>
+<td><code>BrandHover</code></td>
+<td><code>#D4632F</code></td>
+<td>主按钮悬停态</td>
+</tr>
+<tr>
+<td><code>BrandPressed</code></td>
+<td><code>#BF5525</code></td>
+<td>主按钮按下态</td>
+</tr>
+<tr>
+<td><code>Success</code></td>
+<td><code>#52C41A</code></td>
+<td>成功状态、已完成</td>
+</tr>
+<tr>
+<td><code>Warning</code></td>
+<td><code>#FAAD14</code></td>
+<td>警告状态</td>
+</tr>
+<tr>
+<td><code>Error</code></td>
+<td><code>#C0392B</code></td>
+<td>错误、删除、危险操作</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>注意</strong>：品牌橙 <code>#E8743B</code> 仅用于<strong>应用级</strong>语义（主按钮、置顶竖条、选中态）。
+<strong>不要</strong>把它用在便签本体内部的元素上 —— 那些元素的颜色应当跟随便签色相（见 §2「色彩自洽」）。</p>
+</blockquote>
+<h4 id="section-14">3.1.2 便签色板（莫兰迪 12 色：6 色相 × 深浅两档）</h4>
+<p><strong>命名规则</strong>：<code>Note{色相}{档位}_{色块}</code>，例如 <code>NoteYellowDeep_Bg</code>。
+每个色相<strong>必须齐备 5 个色块键</strong>，共 12 × 5 = <strong>60 个资源键</strong>。</p>
+<table>
+<thead>
+<tr>
+<th>色块</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Bg</code></td>
+<td>便签纸底色</td>
+</tr>
+<tr>
+<td><code>Title</code></td>
+<td>标题栏 / 状态栏底色（比 Bg 略深一档）</td>
+</tr>
+<tr>
+<td><code>Border</code></td>
+<td>描边</td>
+</tr>
+<tr>
+<td><code>Text</code></td>
+<td>正文与标题文字色，需保证在 Bg 上的可读对比度</td>
+</tr>
+<tr>
+<td><code>Shadow</code></td>
+<td>阴影色（跟色相走的暖色，<strong>不要退回纯黑</strong>）</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>颜色名称</th>
+<th>便签本体 <code>_Bg</code></th>
+<th>标题栏 <code>_Title</code></th>
+<th>边框 <code>_Border</code></th>
+<th>文字主色 <code>_Text</code></th>
+<th>阴影 <code>_Shadow</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>米黄・深（默认）</td>
+<td><code>#F5ECD7</code></td>
+<td><code>#EDE0C0</code></td>
+<td><code>#D4C4A0</code></td>
+<td><code>#5C4A00</code></td>
+<td><code>#6B5620</code></td>
+</tr>
+<tr>
+<td>米黄・浅</td>
+<td><code>#FBF6E9</code></td>
+<td><code>#F5EDD6</code></td>
+<td><code>#E3D8BC</code></td>
+<td><code>#6B5A1E</code></td>
+<td><code>#8A7846</code></td>
+</tr>
+<tr>
+<td>薄荷・深</td>
+<td><code>#D4E4D0</code></td>
+<td><code>#C8D8C0</code></td>
+<td><code>#A8C4A0</code></td>
+<td><code>#3A5A30</code></td>
+<td><code>#415C38</code></td>
+</tr>
+<tr>
+<td>薄荷・浅</td>
+<td><code>#E7F1E4</code></td>
+<td><code>#DCEBD8</code></td>
+<td><code>#C2D8BC</code></td>
+<td><code>#4A6B40</code></td>
+<td><code>#6E8A66</code></td>
+</tr>
+<tr>
+<td>雾蓝・深</td>
+<td><code>#C8D8E8</code></td>
+<td><code>#B8C8D8</code></td>
+<td><code>#90B0D0</code></td>
+<td><code>#2A4A6A</code></td>
+<td><code>#33485C</code></td>
+</tr>
+<tr>
+<td>雾蓝・浅</td>
+<td><code>#E2EDF6</code></td>
+<td><code>#D4E3F0</code></td>
+<td><code>#B4CCE2</code></td>
+<td><code>#3A5A7A</code></td>
+<td><code>#66809A</code></td>
+</tr>
+<tr>
+<td>豆沙・深</td>
+<td><code>#E8D0D0</code></td>
+<td><code>#D8C0C0</code></td>
+<td><code>#C8A0A0</code></td>
+<td><code>#7A4A4A</code></td>
+<td><code>#6E4646</code></td>
+</tr>
+<tr>
+<td>豆沙・浅</td>
+<td><code>#F5E6E6</code></td>
+<td><code>#EEDADA</code></td>
+<td><code>#DCC2C2</code></td>
+<td><code>#8A5A5A</code></td>
+<td><code>#9A7373</code></td>
+</tr>
+<tr>
+<td>紫罗兰・深</td>
+<td><code>#D8D0E4</code></td>
+<td><code>#C8C0D4</code></td>
+<td><code>#A898C0</code></td>
+<td><code>#4A3A6A</code></td>
+<td><code>#4F4468</code></td>
+</tr>
+<tr>
+<td>紫罗兰・浅</td>
+<td><code>#EBE5F2</code></td>
+<td><code>#E0D9EC</code></td>
+<td><code>#C6BCD8</code></td>
+<td><code>#5A4A7A</code></td>
+<td><code>#7E7396</code></td>
+</tr>
+<tr>
+<td>高级灰・深</td>
+<td><code>#D8D8D8</code></td>
+<td><code>#C8C8C8</code></td>
+<td><code>#A8A8A8</code></td>
+<td><code>#444444</code></td>
+<td><code>#555555</code></td>
+</tr>
+<tr>
+<td>高级灰・浅</td>
+<td><code>#EBEBEB</code></td>
+<td><code>#E0E0E0</code></td>
+<td><code>#C6C6C6</code></td>
+<td><code>#555555</code></td>
+<td><code>#8A8A8A</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>色彩系统实现约束</strong>：</p>
+<ul>
+<li><strong>色板列表只有一处真源</strong>：<code>Helpers/NoteColorHelper.cs</code> 的 <code>All</code>。
+便签&quot;更多&quot;菜单、编辑区改色、批量改色、设置页默认色、标签弹窗<strong>全部</strong>从它取值。
+新增颜色只需改 <code>Colors.xaml</code> + <code>NoteColor</code> 枚举，<strong>其余地方零改动</strong>。</li>
+<li><strong>颜色存库是枚举名小写</strong>（<code>ToLowerInvariant()</code>）。读取<strong>必须</strong>走
+<code>NoteColorHelper.Parse()</code>（内含旧名映射 <code>Yellow → YellowDeep</code> 等 + 兜底默认），
+<strong>不要</strong>直接 <code>Enum.Parse&lt;NoteColor&gt;</code> —— 否则改枚举名会让所有旧便签读不出颜色
+（会直接抛异常，不是静默降级）。</li>
+<li><strong>浅档统一规律</strong>：<code>Bg</code> 比深档亮、<code>Border</code> 更淡、<code>Text</code> 比深档浅一点点以保持对比。</li>
+</ul>
+<h4 id="section-15">3.1.3 中性色（文字与背景）</h4>
+<table>
+<thead>
+<tr>
+<th>Token 名称</th>
+<th>色值</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>TextPrimary</code></td>
+<td><code>#1A1B1C</code></td>
+<td>标题、重要文字</td>
+</tr>
+<tr>
+<td><code>TextSecondary</code></td>
+<td><code>#444444</code></td>
+<td>正文</td>
+</tr>
+<tr>
+<td><code>TextTertiary</code></td>
+<td><code>#666666</code></td>
+<td>次要说明</td>
+</tr>
+<tr>
+<td><code>BgPage</code></td>
+<td><code>#F3F0EA</code></td>
+<td>页面背景（浅色纯色）</td>
+</tr>
+<tr>
+<td><code>BgCard</code></td>
+<td><code>#FFFFFF</code></td>
+<td>卡片、面板背景</td>
+</tr>
+<tr>
+<td><code>BgSidebar</code></td>
+<td><code>#ECE9E3</code></td>
+<td>侧边栏背景</td>
+</tr>
+<tr>
+<td><code>BorderPrimary</code></td>
+<td><code>#D4D1CB</code></td>
+<td>主要边框、分割线</td>
+</tr>
+</tbody>
+</table>
+<h3 id="section-16">3.2 字体系统</h3>
+<h4 id="section-17">字体栈</h4>
+<pre><code>--font-family-base: 'Segoe UI Variable', 'Segoe UI', 'Microsoft YaHei', 'PingFang SC', sans-serif;
+--font-family-mono: 'Consolas', 'Monaco', 'Courier New', monospace;
+</code></pre>
+<blockquote>
+<p><strong>嵌入字体</strong>：霞鹜文楷（<code>LXGWWenKaiLite.ttf</code>），作为 WPF <code>Resource</code> 打包，
+用户可在设置中通过 <code>appearance.note_font</code> 切换 <code>system</code>（系统默认）/ <code>handwriting</code>（霞鹜文楷）。
+<strong>默认值为 <code>handwriting</code></strong>。</p>
+</blockquote>
+<h4 id="section-18">字号与行高</h4>
+<table>
+<thead>
+<tr>
+<th>层级</th>
+<th>字号</th>
+<th>行高</th>
+<th>字重</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>页面标题</td>
+<td>16px</td>
+<td>24px</td>
+<td>600</td>
+<td>设置页标题、面板标题</td>
+</tr>
+<tr>
+<td>区块标题</td>
+<td>13px</td>
+<td>20px</td>
+<td>600</td>
+<td>分类标题、列表组标题</td>
+</tr>
+<tr>
+<td>便签标题</td>
+<td>12px</td>
+<td>18px</td>
+<td>600</td>
+<td>便签窗口标题栏文字</td>
+</tr>
+<tr>
+<td>正文</td>
+<td>16.5px</td>
+<td>见下</td>
+<td>400</td>
+<td>便签内容、列表正文</td>
+</tr>
+<tr>
+<td>辅助文字</td>
+<td>10.5px</td>
+<td>16px</td>
+<td>400</td>
+<td>说明文字、时间戳</td>
+</tr>
+</tbody>
+</table>
+<p><strong>便签正文行高（v1.1.1 变更）</strong>：行高由固定的 ~1.35 倍提升到 <strong>1.5 倍</strong>，
+由 <code>NoteWindowViewModel.NoteLineHeight</code> / <code>NotePreviewViewModel.NoteLineHeight</code> 统一计算：</p>
+<pre><code class="language-csharp">public double NoteLineHeight =&gt; Math.Round(NoteFontSize * 1.5, 2);
+</code></pre>
+<blockquote>
+<p>⚠️ <strong>两个实现陷阱</strong>：
+① <code>LineHeight</code> 是 <code>TextBlock</code> 的属性，<strong><code>TextBox</code> 没有</strong> ——
+必须写成附加属性 <code>TextBlock.LineHeight</code>，再让模板内的 <code>TextBlock</code> 继承，
+同时设 <code>TextBlock.LineStackingStrategy=&quot;BlockLineHeight&quot;</code> 才能生效。
+② 便签窗口（<code>NoteWindow</code>）和主页编辑区（<code>NoteListView</code>）<strong>必须用同一份行高计算</strong>，
+否则同一张便签在两处显示时行距不一致。</p>
+</blockquote>
+<h3 id="section-19">3.3 圆角规范</h3>
+<table>
+<thead>
+<tr>
+<th>Token</th>
+<th>数值</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>RadiusWindow</code></td>
+<td>8px</td>
+<td>窗口、便签、大卡片</td>
+</tr>
+<tr>
+<td><code>RadiusButton</code></td>
+<td>6px</td>
+<td>按钮、输入框</td>
+</tr>
+<tr>
+<td><code>RadiusTag</code></td>
+<td>10px</td>
+<td>标签（胶囊形）</td>
+</tr>
+<tr>
+<td><code>RadiusSmall</code></td>
+<td>4px</td>
+<td>小标签、色卡、图标按钮、待办复选框</td>
+</tr>
+</tbody>
+</table>
+<h3 id="section-20">3.4 阴影规范</h3>
+<table>
+<thead>
+<tr>
+<th>Token</th>
+<th>值</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ShadowNote</code></td>
+<td><code>0 4px 12px rgba(0,0,0,0.15)</code></td>
+<td>便签窗口（桌面悬浮）</td>
+</tr>
+<tr>
+<td><code>ShadowPopup</code></td>
+<td><code>0 8px 24px rgba(0,0,0,0.15)</code></td>
+<td>弹窗、右键菜单</td>
+</tr>
+<tr>
+<td><code>ShadowCard</code></td>
+<td><code>0 2px 8px rgba(0,0,0,0.06)</code></td>
+<td>卡片（面板内）</td>
+</tr>
+<tr>
+<td><code>ShadowNone</code></td>
+<td><code>none</code></td>
+<td>扁平元素、面板内列表</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>v1.1.1 变更</strong>：便签窗口的阴影<strong>不再使用纯黑</strong>，改为跟随便签色相的暖色
+（<code>Note{色相}{档位}_Shadow</code>）。纯黑阴影压在彩色纸上会让边缘发脏灰，
+而暖色阴影能让便签&quot;落&quot;在桌面上而不是&quot;贴&quot;在上面。</p>
+</blockquote>
+<h3 id="section-21">3.5 间距系统</h3>
+<p>基于 <strong>4px 基准网格</strong>，所有间距为 4 的倍数：4/8/12/16/20/24/32/40px。</p>
+<h3 id="section-22">3.6 透明度规范</h3>
+<p>便签透明度调节范围：30% ~ 100%，步进 10%。默认 100%。</p>
+<blockquote>
+<p>⚠️ <strong>低透明度下的可读性补偿</strong>：当 <code>Opacity &lt; 50</code>（<code>IsLowOpacity</code>）时，
+正文强制 <code>Foreground = Black</code>（<code>NoteWindow.xaml</code> 约 479-481 行）。
+这是为了在低透明度下保证对比度，<strong>改配色时不要动这段逻辑</strong>。</p>
+</blockquote>
+<hr />
+<h2 id="section-23">4. 组件库</h2>
+<h3 id="section-24">4.1 按钮</h3>
+<table>
+<thead>
+<tr>
+<th>类型</th>
+<th>样式</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>主按钮</td>
+<td>背景 <code>#E8743B</code>，文字白色，圆角 6px</td>
+<td>主要操作：新建、确认、保存</td>
+</tr>
+<tr>
+<td>次按钮</td>
+<td>背景白色，边框 <code>#D4D1CB</code>，文字 <code>#444</code></td>
+<td>次要操作：取消、导出</td>
+</tr>
+<tr>
+<td>文字按钮</td>
+<td>无背景无边框，文字 <code>#E8743B</code></td>
+<td>轻量操作：链接、更多</td>
+</tr>
+<tr>
+<td>危险按钮</td>
+<td>背景 <code>rgba(192,57,43,0.06)</code>，文字 <code>#C0392B</code></td>
+<td>删除、清除等危险操作</td>
+</tr>
+<tr>
+<td>图标按钮</td>
+<td>正方形，背景透明，悬停 <code>rgba(0,0,0,0.06)</code></td>
+<td>工具栏操作</td>
+</tr>
+</tbody>
+</table>
+<h3 id="toggle">4.2 开关（Toggle）</h3>
+<ul>
+<li>尺寸：40px × 20px，圆角 10px（胶囊形）</li>
+<li>开启背景：<code>#E8743B</code>，关闭背景：<code>#CCCCCC</code></li>
+<li>滑块：白色圆形，直径 14px</li>
+</ul>
+<h3 id="section-25">4.3 输入框</h3>
+<ul>
+<li>高度：28px（单行），圆角 6px</li>
+<li>边框：<code>0.8px solid #D4D1CB</code>，聚焦态边框 <code>#E8743B</code></li>
+</ul>
+<h3 id="tag">4.4 标签（Tag）</h3>
+<ul>
+<li>高度：20px，圆角 10px（胶囊形）</li>
+<li>默认样式：背景 <code>rgba(0,0,0,0.04)</code>，文字 <code>#666</code></li>
+<li>颜色标签：背景 = 便签色 60% 透明度</li>
+</ul>
+<h3 id="todocheckboxstylev1.1.1">4.5 待办复选框（<code>TodoCheckBoxStyle</code>，v1.1.1 新增）</h3>
+<p>自绘样式，替换系统默认 CheckBox：</p>
+<table>
+<thead>
+<tr>
+<th>属性</th>
+<th>值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>尺寸</td>
+<td>14px × 14px，圆角 <strong>4px</strong></td>
+</tr>
+<tr>
+<td>描边</td>
+<td><code>1.3px</code>，颜色取所属便签的 <code>NoteForeground</code></td>
+</tr>
+<tr>
+<td>未完成态</td>
+<td>透明底 + 同色描边</td>
+</tr>
+<tr>
+<td>完成态</td>
+<td>实心填充（<code>NoteForeground</code>，<code>Opacity=0.95</code>）+ 白色对勾</td>
+</tr>
+<tr>
+<td>悬停（未完成）</td>
+<td>底色 <code>#14000000</code>（8% 黑），给出可点提示</td>
+</tr>
+<tr>
+<td>禁用</td>
+<td>整体 <code>Opacity=0.4</code></td>
+</tr>
+<tr>
+<td>命中区域</td>
+<td>外层 <code>Grid Margin=&quot;-4&quot;</code>，<strong>向外扩 4px</strong>，解决 14px 太小不好点的问题</td>
+</tr>
+</tbody>
+</table>
+<p>对勾路径：<code>M 2.5,7.5 L 5.8,10.8 L 11.5,4.5</code>，<code>StrokeThickness=1.8</code>，圆头圆角连接。</p>
+<blockquote>
+<p><strong>为什么自绘</strong>：系统默认 CheckBox 是灰色方框 —— 方形（与本应用 4px 圆角体系不符）、
+描边偏灰（在彩色便签上割裂）、点击区域过小。自绘后<strong>描边与填充自动取便签文字色</strong>，
+因此 12 种便签配色下都能自然融合。</p>
+</blockquote>
+<p><strong>完成态的视觉处理</strong>：完成时<strong>只淡文字 + 加删除线</strong>，复选框本身保持清晰
+（<code>TextDecorations=&quot;Strikethrough&quot;</code>，见 <code>NoteWindow.xaml</code> 约 684 行）。
+不要反过来把复选框也调淡 —— 那样用户无法一眼区分&quot;已完成&quot;和&quot;未完成&quot;。</p>
+<h3 id="section-26">4.6 列表项（便签列表项）</h3>
+<ul>
+<li>高度：64px（单行预览）/ 72px（双行预览）</li>
+<li>左侧颜色条：4px × 44px，圆角 2px</li>
+<li>选中态：背景 <code>rgba(232,116,59,0.08)</code>，左侧 3px <code>#E8743B</code> 竖条</li>
+</ul>
+<hr />
+<h2 id="section-27">5. 布局规范</h2>
+<h3 id="section-28">5.1 便签列表面板（三栏布局）</h3>
+<table>
+<thead>
+<tr>
+<th>区域</th>
+<th>宽度</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>侧边栏</td>
+<td>180px（最小）~ 200px（最大）</td>
+<td>分类导航：全部 / 待提醒 / 归档 / 回收站 + 标签列表</td>
+</tr>
+<tr>
+<td>便签列表</td>
+<td>自适应</td>
+<td>便签卡片列表，支持搜索、排序、批量操作</td>
+</tr>
+<tr>
+<td>编辑预览区</td>
+<td>320px（固定）</td>
+<td>选中便签的详细内容，可直接编辑</td>
+</tr>
+</tbody>
+</table>
+<h3 id="section-29">5.2 设置页布局</h3>
+<ul>
+<li>左侧导航：通用 / 外观 / 快捷键 / 数据 / 关于</li>
+<li>右侧内容区：对应设置项</li>
+</ul>
+<hr />
+<h2 id="section-30">6. 便签窗口专项规范</h2>
+<table>
+<thead>
+<tr>
+<th>属性</th>
+<th>值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>默认尺寸</td>
+<td>220px × 200px</td>
+</tr>
+<tr>
+<td>最小尺寸</td>
+<td>180px × 120px</td>
+</tr>
+<tr>
+<td>圆角</td>
+<td>8px</td>
+</tr>
+<tr>
+<td>阴影</td>
+<td><code>Note{色相}{档位}_Shadow</code>（暖色，见 §3.4）</td>
+</tr>
+<tr>
+<td>标题栏高度</td>
+<td>28px</td>
+</tr>
+<tr>
+<td>置顶标识</td>
+<td>标题栏左侧 3px × 28px 橙色竖条</td>
+</tr>
+<tr>
+<td>控制按钮</td>
+<td>默认隐藏，鼠标进入 200ms 后淡入</td>
+</tr>
+<tr>
+<td>缩放手柄</td>
+<td>右下角 12px × 12px 区域</td>
+</tr>
+</tbody>
+</table>
+<h3 id="section-31">便签状态</h3>
+<ul>
+<li>正常：标准样式</li>
+<li>编辑中（聚焦）：阴影加深</li>
+<li>置顶：标题栏左侧橙色竖条，置顶按钮激活态</li>
+<li>折叠：只显示标题栏，内容区隐藏</li>
+<li>锁定：内容区不可编辑，控制按钮隐藏</li>
+<li>提醒闪烁：便签边框 / 背景周期性闪烁</li>
+</ul>
+<h3 id="v1.1.1">折叠态设计（v1.1.1 完善）</h3>
+<p>折叠后便签变成完整圆角胶囊形，上下圆角一致。折叠态要额外承担两个信息职责：</p>
+<table>
+<thead>
+<tr>
+<th>元素</th>
+<th>作用</th>
+<th>实现</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>语义色脊</strong></td>
+<td>折叠后底色被标题栏色取代，便签&quot;是什么颜色&quot;的信息会丢失</td>
+<td>左侧 3px 竖条（<code>RadiusX/Y=1.5</code>，<code>Margin=6,7</code>），填充 <code>NoteAccentBrush</code>（= <code>Border</code> 色）</td>
+</tr>
+<tr>
+<td><strong>待办徽标</strong></td>
+<td>折叠后看不到内容，这是唯一的进度提示</td>
+<td>见下方说明</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>为什么色脊用 <code>Border</code> 色而不是 <code>Bg</code> 色</strong>：折叠胶囊的底色已经是&quot;标题栏色&quot;，
+若色脊再用 <code>Bg</code> 色，会与胶囊底色出现色差、显得脏。用 <code>Border</code> 色既守住颜色身份，
+又像&quot;书脊&quot;一样给出「这是一张便签」的暗示。</p>
+<p>展开态<strong>不需要</strong>色脊（那时四周都有便签底色），故仅折叠时可见。</p>
+</blockquote>
+<p><strong>待办徽标（折叠态未完成计数）</strong>：</p>
+<ul>
+<li>数据源：<code>UncheckedTodoCount</code>（只统计未完成项；<strong>全部完成时不显示</strong>，避免挂个 0 碍眼）</li>
+<li>可见性绑定：<code>TodoBadgeVisibility</code></li>
+<li>刷新时机：勾选待办时通过 <strong><code>INoteLineParent.NotifyTodoStateChanged()</code></strong> 刷新，
+与 <code>NotifyLineContentChanged()</code> <strong>职责分开</strong> —— 勾选待办<strong>不该触发内容保存</strong>。</li>
+</ul>
+<h3 id="v1.1.1-1">锁定态设计（v1.1.1 完善）</h3>
+<p>锁定态的斜纹浓度定在 <strong>7%</strong>（3% 时肉眼几乎不可见）。</p>
+<p><strong>关键设计约束</strong>：必须<strong>同时</strong>给出&quot;可读的说明 + 可退出的入口&quot;（提示条 + 解锁按钮），
+否则用户分不清&quot;被锁住了&quot;和&quot;界面坏了&quot;。</p>
+<hr />
+<h2 id="section-32">第二部分：技术方案</h2>
+<h2 id="section-33">7. 技术选型决策</h2>
+<h3 id="wpf.net-10">7.1 最终方案：WPF + .NET 10</h3>
+<p><strong>选择理由</strong>：</p>
+<ol>
+<li><strong>便签软件对性能敏感</strong>：常驻桌面、快速唤起是核心体验，WPF 的启动速度和内存占用远优于 Electron</li>
+<li><strong>Windows 原生集成最方便</strong>：全局快捷键、系统托盘、开机自启都需要调用 Windows API，WPF 用 P/Invoke 最直接</li>
+<li><strong>AI 生成质量高</strong>：WPF + MVVM 是非常成熟的模式，资料丰富，AI 生成的 XAML 和 C# 代码质量稳定</li>
+<li><strong>.NET 10 是 LTS 版本</strong>：长期支持，稳定可靠</li>
+<li><strong>单文件部署</strong>：可以发布成单个 exe，用户无需安装 .NET 运行时</li>
+</ol>
+<h3 id="section-34">7.2 技术栈清单</h3>
+<table>
+<thead>
+<tr>
+<th>类别</th>
+<th>技术</th>
+<th>版本</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>运行时</td>
+<td>.NET</td>
+<td>10.0</td>
+<td>应用运行时</td>
+</tr>
+<tr>
+<td>UI 框架</td>
+<td>WPF</td>
+<td>内置</td>
+<td>桌面界面</td>
+</tr>
+<tr>
+<td>架构模式</td>
+<td>MVVM</td>
+<td>—</td>
+<td>架构模式</td>
+</tr>
+<tr>
+<td>MVVM 工具包</td>
+<td>CommunityToolkit.Mvvm</td>
+<td>8.2.2</td>
+<td>ObservableObject、RelayCommand、源生成器</td>
+</tr>
+<tr>
+<td>数据库</td>
+<td>SQLite</td>
+<td>3.x</td>
+<td>本地存储</td>
+</tr>
+<tr>
+<td>数据访问</td>
+<td>Microsoft.Data.Sqlite</td>
+<td>10.0.0</td>
+<td>SQLite ADO.NET 提供程序</td>
+</tr>
+<tr>
+<td>SQLite 原生库</td>
+<td>SQLitePCLRaw.bundle_e_sqlite3</td>
+<td>2.1.13</td>
+<td>覆盖传递依赖，修复 2.1.11 的高危漏洞 (GHSA-2m69-gcr7-jv3q)</td>
+</tr>
+<tr>
+<td>系统托盘</td>
+<td>H.NotifyIcon.Wpf</td>
+<td>2.0.111</td>
+<td>现代化系统托盘</td>
+</tr>
+<tr>
+<td>依赖注入</td>
+<td>Microsoft.Extensions.DependencyInjection</td>
+<td>10.0.0</td>
+<td>DI 容器</td>
+</tr>
+<tr>
+<td>配置</td>
+<td>Microsoft.Extensions.Configuration</td>
+<td>10.0.0</td>
+<td>配置管理</td>
+</tr>
+<tr>
+<td>日志</td>
+<td>Serilog</td>
+<td>3.1.1</td>
+<td>结构化日志</td>
+</tr>
+<tr>
+<td>打包</td>
+<td>.NET Single File / Inno Setup</td>
+<td>—</td>
+<td>单文件发布或安装包</td>
+</tr>
+</tbody>
+</table>
+<p><strong>csproj 关键配置</strong>：</p>
+<pre><code class="language-xml">&lt;TargetFramework&gt;net10.0-windows&lt;/TargetFramework&gt;
+&lt;UseWPF&gt;true&lt;/UseWPF&gt;
+&lt;RootNamespace&gt;NoteApp&lt;/RootNamespace&gt;       &lt;!-- 单段，避免与模型 Note 冲突 --&gt;
+&lt;AssemblyName&gt;Note.App&lt;/AssemblyName&gt;        &lt;!-- 程序集名保持双段 --&gt;
+&lt;Version&gt;1.5.3&lt;/Version&gt;
+&lt;ApplicationHighDpiMode&gt;PerMonitorV2&lt;/ApplicationHighDpiMode&gt;
+&lt;IncludeContentInSingleFile&gt;true&lt;/IncludeContentInSingleFile&gt;
+&lt;ApplicationIcon&gt;Assets\app.ico&lt;/ApplicationIcon&gt;
+&lt;SatelliteResourceLanguages&gt;zh-Hans&lt;/SatelliteResourceLanguages&gt;
+</code></pre>
+<hr />
+<h2 id="section-35">8. 数据库设计</h2>
+<h3 id="section-36">8.1 数据库概览</h3>
+<table>
+<thead>
+<tr>
+<th>属性</th>
+<th>值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>数据库类型</td>
+<td>SQLite</td>
+</tr>
+<tr>
+<td>文件位置</td>
+<td><code>%APPDATA%\今日营业中\today_open.db</code></td>
+</tr>
+<tr>
+<td>备份位置</td>
+<td><code>%APPDATA%\今日营业中\Backup\</code></td>
+</tr>
+<tr>
+<td>字符编码</td>
+<td>UTF-8</td>
+</tr>
+<tr>
+<td>时间存储</td>
+<td>ISO 8601 字符串（<code>yyyy-MM-ddTHH:mm:ss</code>），本地时间</td>
+</tr>
+<tr>
+<td>布尔存储</td>
+<td>INTEGER（0 = false，1 = true）</td>
+</tr>
+<tr>
+<td>GUID 存储</td>
+<td>TEXT（大写，带连字符）</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>🔴 <strong>时间格式的强约束（重要，踩过坑）</strong>：
+<code>CreatedAt</code> / <code>UpdatedAt</code> / <code>DeletedAt</code> <strong>必须</strong>是 ISO 字符串（如 <code>2026-09-11T23:21:46</code>）。
+如果被写成毫秒整数（如 <code>1790069038632</code>），<code>DateTimeHelper.Parse</code> 会抛
+<code>FormatException</code> → <code>GetAllNotes</code> 整体失败 → <strong>所有便签窗口一个都恢复不出来</strong>。
+表象是&quot;软件启动后桌面空白&quot;，<strong>完全看不出是数据库格式问题</strong>，极难排查。
+手工改库时务必守住格式。</p>
+</blockquote>
+<h3 id="section-37">8.2 表结构</h3>
+<h4 id="notes">表：Notes（便签主表）</h4>
+<table>
+<thead>
+<tr>
+<th>字段名</th>
+<th>类型</th>
+<th>约束</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Id</td>
+<td>TEXT</td>
+<td>PRIMARY KEY</td>
+<td>便签唯一标识，GUID</td>
+</tr>
+<tr>
+<td>Title</td>
+<td>TEXT</td>
+<td>NULL</td>
+<td>便签标题（可空，为空时取内容首行）</td>
+</tr>
+<tr>
+<td>Content</td>
+<td>TEXT</td>
+<td>NOT NULL DEFAULT ''</td>
+<td>便签内容，纯文本</td>
+</tr>
+<tr>
+<td>Color</td>
+<td>TEXT</td>
+<td>NOT NULL DEFAULT 'yellow'</td>
+<td>便签颜色枚举名小写</td>
+</tr>
+<tr>
+<td>PositionX</td>
+<td>INTEGER</td>
+<td>NOT NULL DEFAULT 100</td>
+<td>窗口 X 坐标（逻辑像素）</td>
+</tr>
+<tr>
+<td>PositionY</td>
+<td>INTEGER</td>
+<td>NOT NULL DEFAULT 100</td>
+<td>窗口 Y 坐标（逻辑像素）</td>
+</tr>
+<tr>
+<td>Width</td>
+<td>INTEGER</td>
+<td>NOT NULL DEFAULT 220</td>
+<td>窗口宽度（逻辑像素）</td>
+</tr>
+<tr>
+<td>Height</td>
+<td>INTEGER</td>
+<td>NOT NULL DEFAULT 200</td>
+<td>窗口高度（逻辑像素）</td>
+</tr>
+<tr>
+<td>Opacity</td>
+<td>INTEGER</td>
+<td>NOT NULL DEFAULT 100</td>
+<td>不透明度，30-100</td>
+</tr>
+<tr>
+<td>IsPinned</td>
+<td>INTEGER</td>
+<td>NOT NULL DEFAULT 0</td>
+<td>是否置顶</td>
+</tr>
+<tr>
+<td>IsLocked</td>
+<td>INTEGER</td>
+<td>NOT NULL DEFAULT 0</td>
+<td>是否锁定</td>
+</tr>
+<tr>
+<td>IsArchived</td>
+<td>INTEGER</td>
+<td>NOT NULL DEFAULT 0</td>
+<td>是否归档</td>
+</tr>
+<tr>
+<td>IsCollapsed</td>
+<td>INTEGER</td>
+<td>NOT NULL DEFAULT 0</td>
+<td>是否折叠</td>
+</tr>
+<tr>
+<td><strong>IsMinimal</strong></td>
+<td>INTEGER</td>
+<td>NOT NULL DEFAULT 0</td>
+<td><strong>是否极简模式</strong>（v1.1.0 迁移新增）</td>
+</tr>
+<tr>
+<td><strong>IsDockEnabled</strong></td>
+<td>INTEGER</td>
+<td>NOT NULL DEFAULT 0</td>
+<td><strong>是否启用贴边收纳</strong>（v1.4.0 迁移新增）</td>
+</tr>
+<tr>
+<td><strong>DockEdge</strong></td>
+<td>INTEGER</td>
+<td>NOT NULL DEFAULT 0</td>
+<td><strong>贴边方向</strong>（0 = 无，1 = 左，2 = 右；v1.4.0 迁移新增）</td>
+</tr>
+<tr>
+<td><strong>IsDogEar</strong></td>
+<td>INTEGER</td>
+<td>NOT NULL DEFAULT 0</td>
+<td><strong>是否卷角</strong>（v1.5.1 迁移新增）</td>
+</tr>
+<tr>
+<td>FontSize</td>
+<td>REAL</td>
+<td>NULL</td>
+<td>自定义字号</td>
+</tr>
+<tr>
+<td>ZIndex</td>
+<td>INTEGER</td>
+<td>NOT NULL DEFAULT 0</td>
+<td>窗口层级</td>
+</tr>
+<tr>
+<td>CreatedAt</td>
+<td>TEXT</td>
+<td>NOT NULL</td>
+<td>创建时间</td>
+</tr>
+<tr>
+<td>UpdatedAt</td>
+<td>TEXT</td>
+<td>NOT NULL</td>
+<td>最后修改时间</td>
+</tr>
+<tr>
+<td>DeletedAt</td>
+<td>TEXT</td>
+<td>NULL</td>
+<td>删除时间，NULL 表示未删除（软删除）</td>
+</tr>
+</tbody>
+</table>
+<p><strong>索引</strong>：<code>idx_notes_deleted</code>、<code>idx_notes_pinned</code>、<code>idx_notes_archived</code>、<code>idx_notes_updated</code></p>
+<blockquote>
+<p>⚠️ <strong>坐标是逻辑像素（DIP），不是设备像素</strong>。
+本机屏幕若为 150% 缩放，数据库里的 <code>PositionX=1500 / Width=520</code>
+在屏幕上实际表现为 <code>2250</code> / <code>约 816×576</code>。
+<strong>写任何按屏幕坐标匹配窗口的脚本时，必须乘上缩放比</strong>——直接按库里的数值去找窗口必然失败。</p>
+</blockquote>
+<h4 id="tags">表：Tags（标签表）</h4>
+<table>
+<thead>
+<tr>
+<th>字段名</th>
+<th>类型</th>
+<th>约束</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Id</td>
+<td>INTEGER</td>
+<td>PRIMARY KEY AUTOINCREMENT</td>
+<td>标签 ID</td>
+</tr>
+<tr>
+<td>Name</td>
+<td>TEXT</td>
+<td>NOT NULL UNIQUE</td>
+<td>标签名称，唯一</td>
+</tr>
+<tr>
+<td>Color</td>
+<td>TEXT</td>
+<td>NOT NULL DEFAULT 'gray'</td>
+<td>标签颜色</td>
+</tr>
+<tr>
+<td>CreatedAt</td>
+<td>TEXT</td>
+<td>NOT NULL</td>
+<td>创建时间</td>
+</tr>
+</tbody>
+</table>
+<h4 id="notetags">表：NoteTags（便签 - 标签关联表，多对多）</h4>
+<table>
+<thead>
+<tr>
+<th>字段名</th>
+<th>类型</th>
+<th>约束</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>NoteId</td>
+<td>TEXT</td>
+<td>NOT NULL, FOREIGN KEY → Notes(Id)</td>
+<td>便签 ID</td>
+</tr>
+<tr>
+<td>TagId</td>
+<td>INTEGER</td>
+<td>NOT NULL, FOREIGN KEY → Tags(Id)</td>
+<td>标签 ID</td>
+</tr>
+<tr>
+<td>PRIMARY KEY</td>
+<td>(NoteId, TagId)</td>
+<td></td>
+<td>联合主键</td>
+</tr>
+</tbody>
+</table>
+<h4 id="reminders">表：Reminders（提醒表）</h4>
+<table>
+<thead>
+<tr>
+<th>字段名</th>
+<th>类型</th>
+<th>约束</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Id</td>
+<td>INTEGER</td>
+<td>PRIMARY KEY AUTOINCREMENT</td>
+<td>提醒 ID</td>
+</tr>
+<tr>
+<td>NoteId</td>
+<td>TEXT</td>
+<td>NOT NULL, FOREIGN KEY → Notes(Id)</td>
+<td>关联便签 ID</td>
+</tr>
+<tr>
+<td>RemindAt</td>
+<td>TEXT</td>
+<td>NOT NULL</td>
+<td>提醒时间，ISO 8601</td>
+</tr>
+<tr>
+<td>RepeatRule</td>
+<td>TEXT</td>
+<td>NOT NULL DEFAULT 'none'</td>
+<td>重复规则：none/daily/weekly/workdays/monthly</td>
+</tr>
+<tr>
+<td>IsCompleted</td>
+<td>INTEGER</td>
+<td>NOT NULL DEFAULT 0</td>
+<td>本次是否已触发</td>
+</tr>
+<tr>
+<td>CreatedAt</td>
+<td>TEXT</td>
+<td>NOT NULL</td>
+<td>创建时间</td>
+</tr>
+</tbody>
+</table>
+<p><strong>索引</strong>：<code>idx_reminders_note</code>、<code>idx_reminders_time</code></p>
+<h4 id="attachmentsv1.3.0">表：Attachments（图片附件表，v1.3.0 新增）</h4>
+<table>
+<thead>
+<tr>
+<th>字段名</th>
+<th>类型</th>
+<th>约束</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Id</td>
+<td>TEXT</td>
+<td>PRIMARY KEY</td>
+<td>附件唯一标识，GUID</td>
+</tr>
+<tr>
+<td>NoteId</td>
+<td>TEXT</td>
+<td>NOT NULL, FOREIGN KEY → Notes(Id)</td>
+<td>关联便签 ID（ON DELETE CASCADE）</td>
+</tr>
+<tr>
+<td>FileName</td>
+<td>TEXT</td>
+<td>NULL</td>
+<td>原始文件名</td>
+</tr>
+<tr>
+<td>ContentType</td>
+<td>TEXT</td>
+<td>NOT NULL</td>
+<td>MIME 类型（如 <code>image/png</code>）</td>
+</tr>
+<tr>
+<td>ByteSize</td>
+<td>INTEGER</td>
+<td>NOT NULL</td>
+<td>字节数</td>
+</tr>
+<tr>
+<td>PixelWidth</td>
+<td>INTEGER</td>
+<td>NOT NULL DEFAULT 0</td>
+<td>图片宽（像素）</td>
+</tr>
+<tr>
+<td>PixelHeight</td>
+<td>INTEGER</td>
+<td>NOT NULL DEFAULT 0</td>
+<td>图片高（像素）</td>
+</tr>
+<tr>
+<td>Data</td>
+<td>BLOB</td>
+<td>NOT NULL</td>
+<td>图片字节</td>
+</tr>
+<tr>
+<td>CreatedAt</td>
+<td>TEXT</td>
+<td>NOT NULL</td>
+<td>创建时间</td>
+</tr>
+</tbody>
+</table>
+<p><strong>索引</strong>：<code>idx_attachments_note</code></p>
+<blockquote>
+<p><strong>刻意的设计取舍：图片直接入库（BLOB），不存外部文件夹。</strong>
+备份用 <code>VACUUM INTO</code> 生成整库快照，图片<strong>自动跟随备份与恢复</strong>，
+不会出现「备份看着成功、恢复后图片全没了」或孤儿文件。
+代价是库文件变大，已在写入前做等比缩小（长边 ≤1600px）与编码压缩来控制体积；
+缩略图按显示尺寸解码（<code>DecodePixelWidth</code>），不把整张原图读进内存。
+便签被彻底删除后附件随 <code>ON DELETE CASCADE</code> 级联；<strong>软删除不会</strong>（回收站里的图仍有主）。</p>
+</blockquote>
+<h4 id="settings">表：Settings（设置表，键值对）</h4>
+<table>
+<thead>
+<tr>
+<th>字段名</th>
+<th>类型</th>
+<th>约束</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Key</td>
+<td>TEXT</td>
+<td>PRIMARY KEY</td>
+<td>设置键名</td>
+</tr>
+<tr>
+<td>Value</td>
+<td>TEXT</td>
+<td>NOT NULL</td>
+<td>设置值（序列化为字符串）</td>
+</tr>
+<tr>
+<td>UpdatedAt</td>
+<td>TEXT</td>
+<td>NOT NULL</td>
+<td>最后修改时间</td>
+</tr>
+</tbody>
+</table>
+<p><strong>预设设置项与默认值</strong>（以 <code>AppDbContext.DefaultSettings</code>（20 项）为准，建库与「恢复默认」共用）：</p>
+<table>
+<thead>
+<tr>
+<th>键名</th>
+<th>默认值</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>general.first_run_completed</code></td>
+<td><code>false</code></td>
+<td>首次运行标记</td>
+</tr>
+<tr>
+<td><code>general.autostart</code></td>
+<td><code>true</code></td>
+<td>开机自启</td>
+</tr>
+<tr>
+<td><code>general.startup_delay_seconds</code></td>
+<td><code>5</code></td>
+<td>开机启动延迟（秒）</td>
+</tr>
+<tr>
+<td><code>general.minimize_to_tray</code></td>
+<td><code>true</code></td>
+<td>关闭时最小化到托盘</td>
+</tr>
+<tr>
+<td><code>general.new_note_position</code></td>
+<td><code>mouse</code></td>
+<td>新便签出现位置</td>
+</tr>
+<tr>
+<td><code>general.autosave_interval_ms</code></td>
+<td><code>500</code></td>
+<td>自动保存间隔（毫秒）</td>
+</tr>
+<tr>
+<td><code>general.pinned_no_focus</code></td>
+<td><code>true</code></td>
+<td>置顶不抢焦点</td>
+</tr>
+<tr>
+<td><code>appearance.theme</code></td>
+<td><code>light</code></td>
+<td>主题（<strong>v1.1.0 起默认浅色</strong>）</td>
+</tr>
+<tr>
+<td><code>appearance.default_color</code></td>
+<td><code>yellow</code></td>
+<td>默认便签颜色</td>
+</tr>
+<tr>
+<td><code>appearance.default_opacity</code></td>
+<td><code>100</code></td>
+<td>默认不透明度</td>
+</tr>
+<tr>
+<td><code>appearance.font_size</code></td>
+<td><code>16.5</code></td>
+<td>默认字号（<strong>v1.1.0 起由 12.5 提到 16.5</strong>）</td>
+</tr>
+<tr>
+<td><code>appearance.note_font</code></td>
+<td><code>handwriting</code></td>
+<td>内容区字体（<strong>v1.1.0 起默认霞鹜文楷</strong>）</td>
+</tr>
+<tr>
+<td><code>reminder.sound_enabled</code></td>
+<td><code>true</code></td>
+<td>提醒声音</td>
+</tr>
+<tr>
+<td><code>reminder.snooze_minutes</code></td>
+<td><code>10</code></td>
+<td>贪睡分钟数</td>
+</tr>
+<tr>
+<td><code>hotkey.new_note</code></td>
+<td><code>Ctrl+Alt+N</code></td>
+<td>新建便签</td>
+</tr>
+<tr>
+<td><code>hotkey.search</code></td>
+<td><code>Ctrl+Alt+F</code></td>
+<td>搜索</td>
+</tr>
+<tr>
+<td><code>hotkey.toggle_all</code></td>
+<td><code>Ctrl+Alt+H</code></td>
+<td>显示 / 隐藏全部</td>
+</tr>
+<tr>
+<td><code>data.backup_enabled</code></td>
+<td><code>true</code></td>
+<td>自动备份</td>
+</tr>
+<tr>
+<td><code>data.backup_interval_days</code></td>
+<td><code>7</code></td>
+<td>备份间隔天数</td>
+</tr>
+<tr>
+<td><code>data.retain_days</code></td>
+<td><code>30</code></td>
+<td>回收站保留天数（<strong>v1.2.0 起真正生效</strong>，见 §26.1）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="section-38">8.3 数据库迁移机制</h3>
+<p>应用启动时执行 <strong>幂等的增量迁移</strong>：<code>AppDbContext.MigrateSchema(connection)</code> 每次启动都检查，
+用 <code>PRAGMA table_info({table})</code> 判断列是否存在，缺列则 <code>ALTER TABLE ADD COLUMN</code>。</p>
+<pre><code class="language-csharp">private static void MigrateSchema(SqliteConnection connection)
+{
+    if (!ColumnExists(connection, &quot;Notes&quot;, &quot;Title&quot;))         { /* ALTER TABLE Notes ADD COLUMN Title TEXT */ }
+    if (!ColumnExists(connection, &quot;Notes&quot;, &quot;IsMinimal&quot;))     { /* ... INTEGER NOT NULL DEFAULT 0 */ }
+    if (!ColumnExists(connection, &quot;Notes&quot;, &quot;IsDockEnabled&quot;)) { /* ... INTEGER NOT NULL DEFAULT 0（v1.4.0） */ }
+    if (!ColumnExists(connection, &quot;Notes&quot;, &quot;DockEdge&quot;))      { /* ... INTEGER NOT NULL DEFAULT 0（v1.4.0） */ }
+    if (!ColumnExists(connection, &quot;Notes&quot;, &quot;IsDogEar&quot;))      { /* ... INTEGER NOT NULL DEFAULT 0（v1.5.1） */ }
+}
+</code></pre>
+<p><strong>设计要点</strong>：新建表的 SQL 里直接包含全部列，旧库通过迁移补列 —— 两条路径都能得到相同的结构。
+新增字段时<strong>只需在这里加一个 <code>if</code> 分支</strong>，同时更新建表 SQL 与 <code>NoteRepository</code> 的列清单。</p>
+<blockquote>
+<p><code>ColumnExists</code> 读取 <code>PRAGMA table_info</code> 的索引 1（<code>name</code>），
+注意该结果集的列顺序是 <code>cid(0), name(1), type(2), notnull(3), dflt_value(4), pk(5)</code>。</p>
+</blockquote>
+<hr />
+<h2 id="section-39">9. 项目结构规范</h2>
+<pre><code>D:/PJ/Note/
+├── src/
+│   └── Note.App/
+│       ├── Assets/
+│       │   └── app.ico                    # 应用图标（Resource 打包）
+│       ├── Fonts/
+│       │   └── LXGWWenKaiLite.ttf         # 霞鹜文楷 Lite（Resource 打包）
+│       ├── Constants/                     # 常量
+│       ├── Data/                          # 数据访问层
+│       │   ├── AppDbContext.cs            # 建表 + 迁移 + 种子设置
+│       │   ├── Backup/
+│       │   └── Repositories/
+│       │       ├── INoteRepository.cs / NoteRepository.cs
+│       │       ├── ITagRepository.cs  / TagRepository.cs
+│       │       ├── IReminderRepository.cs / ReminderRepository.cs
+│       │       ├── ISettingsRepository.cs / SettingsRepository.cs
+│       │       └── IAttachmentRepository.cs / AttachmentRepository.cs   # v1.3.0 新增
+│       ├── Helpers/                       # 工具与自绘控件
+│       │   ├── NoteLineEditor.cs          # ★ 跨行选区编辑器（核心，见 §11.10）
+│       │   ├── NoteColorHelper.cs         # ★ 色板唯一真源
+│       │   ├── TreeWalker.cs              # ★ 事件源爬树唯一入口（v1.5.3 收口，禁止裸调 VisualTreeHelper）
+│       │   ├── DockGeometry.cs            # 贴边几何纯函数（v1.4.0）
+│       │   ├── MonitorHelper.cs           # 多屏 / 工作区（v1.4.0）
+│       │   ├── DogEarPalette.cs           # 卷角配色（v1.5.1，回退 #F3F0EA）
+│       │   ├── ImageSizing.cs             # 附件缩放常量（v1.3.0）
+│       │   ├── HighlightSegmenter.cs      # 搜索高亮分词（v1.2.0）
+│       │   ├── NoteImportSanitizer.cs     # 导入内容清洗（v1.2.0）
+│       │   ├── SelectionAdorner.cs / SelectionGeometryCache.cs
+│       │   ├── TitleBarColorHelper.cs     # 标题栏配色
+│       │   ├── ServiceLocator.cs          # DI 定位器
+│       │   ├── LogHelper.cs / LoggerInitializer.cs
+│       │   ├── DateTimeHelper.cs / GuidHelper.cs
+│       │   ├── HotkeyHelper.cs
+│       │   ├── NotificationManager.cs
+│       │   ├── WelcomeNoteCreator.cs
+│       │   ├── AppInfo.cs / ByteSizeConverter.cs / RelativeTimeConverter.cs
+│       │   ├── AlphaColorConverter.cs / EnumEqualsConverter.cs / IconKeyToGeometryConverter.cs
+│       │   ├── NoteColorConverter.cs      # 🔴 失败返回全透明 → 判有效色必须 Color.A &gt; 0
+│       │   └── Converters/
+│       ├── Models/
+│       │   ├── Note.cs / Tag.cs / Reminder.cs / AppSettings.cs / BackupInfo.cs
+│       │   ├── Attachment.cs / AttachmentStorageSummary.cs / ImportResult.cs / NoteTagLink.cs
+│       │   └── Enums/
+│       │       ├── NoteColor.cs           # 12 色枚举
+│       │       ├── RepeatRule.cs
+│       │       └── AppTheme.cs
+│       ├── Native/
+│       │   └── WindowNativeMethods.cs     # P/Invoke 集中处
+│       ├── Resources/
+│       │   ├── Colors.xaml                # 品牌色 + 60 个便签色块键
+│       │   ├── Styles.xaml                # 组件样式（含 TodoCheckBoxStyle）
+│       │   ├── Icons.xaml                 # 图标几何
+│       │   └── Themes/
+│       ├── Services/                      # 服务层（接口 + 实现同目录）
+│       │   ├── NoteService.cs
+│       │   ├── SettingsService.cs
+│       │   ├── ReminderService.cs
+│       │   ├── BackupService.cs           # VACUUM INTO 快照备份（v1.2.0 重做）
+│       │   ├── ImportService.cs           # JSON / Markdown / 文本导入（v1.2.0）
+│       │   ├── AttachmentService.cs       # 图片附件（v1.3.0，含存储统计 / 孤儿清理）
+│       │   ├── AutostartService.cs
+│       │   ├── HotkeyService.cs / HotkeyConfig.cs / HotkeyTriggeredEventArgs.cs
+│       │   ├── ThemeService.cs
+│       │   ├── TrayService.cs
+│       │   ├── WindowService.cs
+│       │   ├── SingleInstanceService.cs
+│       │   ├── NoteEditorService.cs
+│       │   └── 对应的 I*Service.cs 接口与 *EventArgs.cs
+│       ├── ViewModels/
+│       │   ├── NoteWindowViewModel.cs     # ★ 便签窗口
+│       │   ├── NoteListViewModel.cs       # ★ 列表面板
+│       │   ├── NotePreviewViewModel.cs    # ★ 主页编辑区
+│       │   ├── NoteEditorViewModelBase.cs # ★ 两编辑器共用基类（v1.5.0 收口，新编辑功能放这里）
+│       │   ├── AttachmentCollection.cs    # 两编辑器共用附件集合（v1.3.0）
+│       │   ├── FilterOption.cs            # 筛选条件（v1.2.0）
+│       │   ├── NoteLineViewModel.cs       # 行 ViewModel（Normal/Todo）
+│       │   ├── INoteLineParent.cs         # 行父接口
+│       │   ├── NoteItemViewModel.cs
+│       │   ├── ReminderPickerViewModel.cs / ReminderNotificationViewModel.cs
+│       │   ├── SettingsViewModel.cs / GeneralSettingsViewModel.cs
+│       │   ├── AppearanceSettingsViewModel.cs
+│       │   ├── HotkeySettingsViewModel.cs / DataSettingsViewModel.cs
+│       │   ├── AboutViewModel.cs
+│       │   ├── CategoryItem.cs / SortBy.cs / ViewModelBase.cs
+│       │   └── SettingsPages/
+│       ├── Views/
+│       │   ├── MainWindow.xaml            # 入口窗口
+│       │   ├── NoteWindow.xaml            # ★ 便签窗口（含纸张质感画刷）
+│       │   │   └── NoteWindow.{Menus,DragResize,Reminders,LineEditing,DisplayMode}.cs
+│       │   │                              #   ★ v1.5.3 起按职责拆 5 个 partial（各有「改前必读」）
+│       │   ├── DockController.cs          # ★ 贴边收纳控制器（v1.4.0，配 DockGeometryTests）
+│       │   ├── NoteListView.xaml          # ★ 信件管理面板
+│       │   ├── SettingsWindow.xaml        # 自绘标题栏（v1.5.3，CaptionHeight=40）
+│       │   ├── ReminderPicker.xaml / ReminderNotification.xaml
+│       │   ├── SnoozeInputDialog.xaml
+│       │   ├── TagCreateDialog.xaml
+│       │   ├── ToastWindow.xaml
+│       │   └── Controls/
+│       │       └── HighlightTextBlock.cs  # 搜索关键词高亮文本块（v1.2.0）
+│       ├── appsettings.json
+│       ├── App.xaml / App.xaml.cs
+│       ├── AssemblyInfo.cs
+│       └── Note.App.csproj
+├── tests/
+│   └── Note.App.Tests/                    # ★ xunit 单元测试（324 用例 / 14 文件，见 §23）
+├── installer/
+│   └── setup.iss                          # Inno Setup 脚本（当前发布流程未使用，见 §23.6）
+├── publish/                               # 单文件发布输出
+├── release/                               # 便携版目录 / ZIP / _archive 归档
+├── Temp/                                  # 验证脚本与工具（不入库）
+├── Note.sln
+├── 今日营业中_完整开发文档_v1.5.3.md        # 本文档
+├── 今日营业中_完整开发文档_v1.1.1.md        # 历史版本存档
+└── 桌面便签软件技术方案.md / 桌面便签软件设计规范.md   # 规划期文档（v1.0）
+</code></pre>
+<h3 id="section-40">命名规范</h3>
+<table>
+<thead>
+<tr>
+<th>类型</th>
+<th>规范</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>便签颜色资源键</td>
+<td><code>Note{色相}{档位}_{色块}</code></td>
+<td><code>NoteYellowDeep_Bg</code></td>
+</tr>
+<tr>
+<td>Service 接口</td>
+<td><code>I</code> + 名词 + <code>Service</code></td>
+<td><code>INoteService</code></td>
+</tr>
+<tr>
+<td>Repository 接口</td>
+<td><code>I</code> + 实体 + <code>Repository</code></td>
+<td><code>INoteRepository</code></td>
+</tr>
+<tr>
+<td>ViewModel</td>
+<td>名词 + <code>ViewModel</code></td>
+<td><code>NoteWindowViewModel</code></td>
+</tr>
+<tr>
+<td>事件参数</td>
+<td>名词 + <code>EventArgs</code></td>
+<td><code>NoteEventArgs</code></td>
+</tr>
+<tr>
+<td>私有字段</td>
+<td><code>_</code> + camelCase</td>
+<td><code>_isSaving</code></td>
+</tr>
+<tr>
+<td>存库颜色名</td>
+<td>枚举名 <code>ToLowerInvariant()</code></td>
+<td><code>yellowdeep</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="section-41">10. 核心模块接口</h2>
+<h3 id="inoteservice">10.1 INoteService（便签服务）</h3>
+<table>
+<thead>
+<tr>
+<th>成员</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>GetAllNotes()</code></td>
+<td>取全部未删除便签</td>
+</tr>
+<tr>
+<td><code>GetNoteById(Guid id)</code></td>
+<td>按 ID 取单条</td>
+</tr>
+<tr>
+<td><code>CreateNote(Note note)</code></td>
+<td>新建</td>
+</tr>
+<tr>
+<td><code>UpdateNote(Note note)</code></td>
+<td>更新</td>
+</tr>
+<tr>
+<td><code>DeleteNote(Guid id)</code></td>
+<td>软删除（写 <code>DeletedAt</code>）</td>
+</tr>
+<tr>
+<td><code>RestoreNote(Guid id)</code></td>
+<td>从回收站恢复</td>
+</tr>
+<tr>
+<td><code>PermanentlyDeleteNote(Guid id)</code></td>
+<td>彻底删除</td>
+</tr>
+<tr>
+<td><code>NoteCreated</code> / <code>NoteUpdated</code> / <code>NoteDeleted</code> 事件</td>
+<td>变更通知（多窗口同步的基础）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="iwindowservice">10.2 IWindowService（窗口管理服务）</h3>
+<table>
+<thead>
+<tr>
+<th>成员</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ShowNoteWindow(Note)</code></td>
+<td>打开便签窗口（已存在则激活）</td>
+</tr>
+<tr>
+<td><code>CloseNoteWindow(Guid)</code></td>
+<td>关闭便签窗口</td>
+</tr>
+<tr>
+<td><code>RestoreNoteWindows()</code></td>
+<td>启动时按库恢复全部便签窗口</td>
+</tr>
+<tr>
+<td><code>ShowNoteList()</code> / <code>HideNoteList()</code></td>
+<td>列表面板显隐</td>
+</tr>
+<tr>
+<td><code>ShowSettings()</code></td>
+<td>打开设置</td>
+</tr>
+</tbody>
+</table>
+<h3 id="ihotkeyservice">10.3 IHotkeyService（全局快捷键服务）</h3>
+<table>
+<thead>
+<tr>
+<th>成员</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>RegisterAll()</code></td>
+<td>注册全部快捷键</td>
+</tr>
+<tr>
+<td><code>UnregisterAll()</code></td>
+<td>注销全部</td>
+</tr>
+<tr>
+<td><code>UpdateHotkey(name, config)</code></td>
+<td>改键后重注册</td>
+</tr>
+<tr>
+<td><code>HotkeyTriggered</code> 事件</td>
+<td>触发通知</td>
+</tr>
+</tbody>
+</table>
+<p><strong>默认键位</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>名称</th>
+<th>键位</th>
+<th>功能</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>hotkey.new_note</code></td>
+<td><code>Ctrl+Alt+N</code></td>
+<td>新建便签</td>
+</tr>
+<tr>
+<td><code>hotkey.search</code></td>
+<td><code>Ctrl+Alt+F</code></td>
+<td>搜索</td>
+</tr>
+<tr>
+<td><code>hotkey.toggle_all</code></td>
+<td><code>Ctrl+Alt+H</code></td>
+<td>显示 / 隐藏全部</td>
+</tr>
+</tbody>
+</table>
+<h3 id="ithemeservice">10.4 IThemeService（主题服务）</h3>
+<table>
+<thead>
+<tr>
+<th>成员</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ApplyTheme(AppTheme)</code></td>
+<td>应用主题</td>
+</tr>
+<tr>
+<td><code>CurrentTheme</code></td>
+<td>当前主题</td>
+</tr>
+<tr>
+<td><code>ThemeChanged</code> 事件</td>
+<td>主题变更（标题栏颜色实时跟随的驱动源）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="inotelineparent">10.5 INoteLineParent（行父接口，编辑区核心）</h3>
+<p><code>NoteLineEditor</code> 与宿主 ViewModel 之间的契约，是&quot;每行一个 TextBox + 自绘跨行选区&quot;架构的关键：</p>
+<table>
+<thead>
+<tr>
+<th>成员</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Lines</code></td>
+<td>行集合</td>
+</tr>
+<tr>
+<td><code>IsReadOnly</code></td>
+<td>是否只读（锁定态为 true）</td>
+</tr>
+<tr>
+<td><code>IndexOf(line)</code></td>
+<td>行索引</td>
+</tr>
+<tr>
+<td><code>InsertLineAfter(index, text)</code></td>
+<td>在指定行后插入</td>
+</tr>
+<tr>
+<td><code>RemoveLine(index)</code></td>
+<td>删除行</td>
+</tr>
+<tr>
+<td><code>MergeLineWithPrevious(index)</code></td>
+<td>与上一行合并，返回合并位置</td>
+</tr>
+<tr>
+<td><code>FocusLineByIndex(index, caret)</code></td>
+<td>聚焦到指定行与光标位</td>
+</tr>
+<tr>
+<td><code>Undo()</code> / <code>Redo()</code> / <code>CanUndo</code> / <code>CanRedo</code></td>
+<td>撤销重做（跨行统一接管）</td>
+</tr>
+<tr>
+<td><strong><code>NotifyLineContentChanged()</code></strong></td>
+<td>行内容变化 → 触发<strong>自动保存</strong></td>
+</tr>
+<tr>
+<td><strong><code>NotifyTodoStateChanged()</code></strong></td>
+<td>勾选待办 → 只刷新徽标，<strong>不触发保存</strong></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>两个通知方法必须分开</strong>：勾选待办不产生内容变化，若走 <code>NotifyLineContentChanged</code>
+会导致无意义的自动保存写库。这是 v1.1.0 引入待办功能时专门拆分的。</p>
+</blockquote>
+<hr />
+<h2 id="section-42">11. 关键技术方案</h2>
+<h3 id="section-43">11.1 无边框窗口实现</h3>
+<ul>
+<li><strong>方案</strong>：<code>AllowsTransparency=True</code> + <code>WindowStyle=None</code></li>
+<li><strong>原因</strong>：<code>WindowChrome</code> 方案会导致系统按钮（最小化 / 最大化 / 关闭）消失，不可用</li>
+<li><strong>圆角实现</strong>：XAML 中 <code>CornerRadius</code> + <code>Clip</code></li>
+</ul>
+<p><strong>便签窗口（NoteWindow）完整窗口属性</strong>：</p>
+<pre><code class="language-xml">&lt;Window WindowStyle=&quot;None&quot;
+        AllowsTransparency=&quot;True&quot;
+        ResizeMode=&quot;CanResizeWithGrip&quot;
+        ShowInTaskbar=&quot;False&quot;
+        ShowActivated=&quot;False&quot;
+        Topmost=&quot;{Binding IsPinned}&quot;
+        Opacity=&quot;{Binding WindowOpacity}&quot;
+        Background=&quot;Transparent&quot;
+        Width=&quot;220&quot; Height=&quot;200&quot;
+        MinWidth=&quot;180&quot; MinHeight=&quot;120&quot;&gt;
+</code></pre>
+<h3 id="section-44">11.2 标题栏颜色自适应</h3>
+<ul>
+<li><strong>方案</strong>：<code>DwmSetWindowAttribute</code> Win32 API</li>
+<li><strong>常量</strong>：<code>DWMWA_CAPTION_COLOR=35</code>（标题栏背景色）、<code>DWMWA_TEXT_COLOR=36</code>（文字色）</li>
+<li><strong>颜色格式</strong>：BGR（<code>#F3F0EA</code> → <code>0x00EAF0F3</code>）</li>
+<li><strong>封装</strong>：<code>TitleBarColorHelper.ApplyByCurrentTheme()</code> 自动检测当前主题设置颜色</li>
+<li><strong>兼容性</strong>：Windows 10 20H1+ 生效，更早版本静默忽略</li>
+<li><strong>事件驱动</strong>：订阅 <code>IThemeService.ThemeChanged</code> 事件，主题切换时实时更新标题栏颜色</li>
+</ul>
+<h3 id="section-45">11.3 置顶不抢焦点</h3>
+<ul>
+<li><strong>方案</strong>：<code>Topmost=True</code> + 重写 <code>WndProc</code> 处理 <code>WM_MOUSEACTIVATE</code> 返回 <code>MA_NOACTIVATE</code></li>
+<li><strong>效果</strong>：便签置顶显示，但点击时不抢焦点，不影响其他窗口输入</li>
+</ul>
+<h3 id="section-46">11.4 全局快捷键</h3>
+<ul>
+<li><strong>方案</strong>：P/Invoke <code>RegisterHotKey</code> / <code>UnregisterHotKey</code></li>
+<li><strong>消息循环</strong>：重写 <code>WndProc</code> 处理 <code>WM_HOTKEY</code> 消息</li>
+<li><strong>默认快捷键</strong>：Ctrl+Alt+N（新建）、Ctrl+Alt+H（显示 / 隐藏）、Ctrl+Alt+F（搜索）</li>
+</ul>
+<blockquote>
+<p><strong>注意区分两套&quot;快捷键&quot;</strong>：本节的<strong>全局快捷键</strong>是系统级的热键（应用不在前台也能响应，
+由 <code>RegisterHotKey</code> 注册）；而 <a href="#1110-%E8%B7%A8%E8%A1%8C%E9%80%89%E5%8C%BA%E7%BC%96%E8%BE%91%E5%99%A8%E6%A0%B8%E5%BF%83">§11.10</a> 的<strong>编辑区快捷键</strong>
+（Ctrl+C/X/A/V/Z/Y）是在编辑区内部处理的应用级按键，两者互不干涉。</p>
+</blockquote>
+<h3 id="section-47">11.5 单实例运行</h3>
+<ul>
+<li><strong>方案</strong>：<code>Mutex</code> 命名互斥体</li>
+<li><strong>Mutex 名</strong>：<code>TodayOpen_SingleInstance_Mutex_2026</code></li>
+<li><strong>效果</strong>：第二次启动时检测到已有实例，自动退出</li>
+</ul>
+<blockquote>
+<p>⚠️ <strong>验证/调试时的注意点</strong>：退出应用时，<code>OnExit</code> 需要<strong>写数据库 + 释放命名 Mutex</strong>。
+用脚本 kill 进程后，若不等它退干净就立刻启新实例，新实例会被单实例逻辑挡掉，
+表现为<strong>一个便签窗口都不恢复</strong>（极易误判为数据损坏）。
+正确做法是<strong>轮询等进程真正退出，再额外等 3 秒</strong>。</p>
+</blockquote>
+<h3 id="section-48">11.6 自动保存</h3>
+<ul>
+<li><strong>方案</strong>：<code>TextChanged</code> 事件 + 防抖（500ms）</li>
+<li><strong>效果</strong>：用户输入后 500ms 自动保存到数据库，无需手动保存</li>
+</ul>
+<h3 id="section-49">11.7 系统托盘</h3>
+<ul>
+<li><strong>方案</strong>：<code>H.NotifyIcon.Wpf</code> 库</li>
+<li><strong>功能</strong>：托盘图标、右键菜单、双击显示列表面板</li>
+</ul>
+<h3 id="section-50">11.8 开机自启</h3>
+<ul>
+<li><strong>方案</strong>：读写注册表 <code>HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run\TodayOpen</code></li>
+<li><strong>卸载时</strong>：Inno Setup 脚本自动删除该注册表项</li>
+</ul>
+<h3 id="section-51">11.9 列表刷新防重复</h3>
+<ul>
+<li><strong>方案</strong>：三重保护
+<ol>
+<li><code>_isNoteCreating</code> 标志：新建便签期间抑制事件触发的刷新，结束后统一刷新一次</li>
+<li><code>_isReloading</code> 标志：防止 <code>ReloadNotes()</code> 递归调用</li>
+<li><code>HashSet&lt;Guid&gt;</code> 去重：同一个 <code>Note.Id</code> 只添加一次</li>
+</ol>
+</li>
+</ul>
+<h3 id="section-52">11.10 跨行选区编辑器（核心）</h3>
+<p><strong>这是本项目技术上最独特、也最容易踩坑的部分，改动前务必读完本节。</strong></p>
+<h4 id="selectionlength">架构：为什么不用原生 SelectionLength</h4>
+<p>便签正文是<strong>多行</strong>的（<code>ItemsControl</code> 按行渲染，每行一个独立 <code>TextBox</code>），
+但用户期望的是<strong>跨行的连续选区</strong>（像在 Word 里拖选一样）。</p>
+<p>WPF 的 <code>TextBox</code> 的选区（<code>SelectionStart</code> / <code>SelectionLength</code>）<strong>只能存在于单个 TextBox 内部</strong>，
+无法跨越控件。因此本项目的做法是：</p>
+<blockquote>
+<p><strong>选区状态由编辑器自己持有</strong>（<code>_anchor</code> / <code>_focus</code> 两个 <code>(int Line, int Caret)?</code> 元组），
+<strong>高亮由 <code>Adorner</code>（<code>SelectionAdorner</code>）自绘</strong>，各行 TextBox 的 <code>SelectionLength</code> 始终是 0。</p>
+</blockquote>
+<pre><code class="language-csharp">// 选区状态存放在编辑器自身，不在任何 TextBox 里
+private (int Line, int Caret)? _anchor;   // 起点
+private (int Line, int Caret)? _focus;    // 终点（可位于 anchor 前后）
+</code></pre>
+<p><strong>这个架构带来两个必须牢记的后果</strong>：</p>
+<ol>
+<li><strong>系统命令&quot;看不见&quot;这个选区</strong>（详见下一节）</li>
+<li><strong>绘制性能必须自己优化</strong>（详见&quot;性能修复&quot;）</li>
+</ol>
+<h4 id="ctrlc-ctrlx">陷阱一：Ctrl+C / Ctrl+X 完全无反应</h4>
+<p><strong>症状</strong>：跨行选中多行后按 Ctrl+C，剪贴板只有最后一行；Ctrl+X 完全没反应。</p>
+<p><strong>根因（双层缺陷）</strong>：</p>
+<p>① <strong>命令路由根本不派发。</strong>
+<code>CommandManager</code> 在命令 <strong><code>CanExecute == false</code> 时，不会派发 <code>Executed</code></strong>，
+因此 <code>PreviewExecuted</code> 拦截器<strong>永远不会被调用</strong>。
+而 TextBox 的 <code>Copy</code> / <code>Cut</code> 的 <code>CanExecute</code> <strong>只认它自己的 <code>SelectionLength</code></strong> ——
+跨行选区存在 <code>_anchor</code> / <code>_focus</code> 里，各行 TextBox 的 <code>SelectionLength</code> 全是 0，
+所以对命令系统<strong>完全不可见</strong> → 命令被判定为&quot;不可执行&quot; → 表现为按键无反应。</p>
+<blockquote>
+<p><strong>对照证据</strong>：<code>Ctrl+A</code> 一直是好的，因为 <code>SelectAll.CanExecute</code> 恒为 <code>true</code>，不走这个门槛。
+实测日志里 Ctrl+A 有 <code>PreviewExecuted</code> 记录，Ctrl+C / Ctrl+X <strong>完全没有</strong>。</p>
+</blockquote>
+<p>② <strong>Ctrl+C 的键位映射会走到 <code>Insert</code> 键</strong>（Ctrl+Insert 是 Copy 的另一条键路），
+说明命令路由本身也不可靠。</p>
+<p><strong>修复</strong>：把 Ctrl+C / X / A / V <strong>从&quot;命令路由&quot;改为在 <code>PreviewKeyDown</code> 里直接处理</strong>：</p>
+<pre><code class="language-csharp">// Ctrl+C / Ctrl+X / Ctrl+A / Ctrl+V：直接在本层处理，不依赖命令路由
+if (isCtrl &amp;&amp; !e.IsRepeat)
+{
+    switch (e.Key)
+    {
+        case Key.C:
+            e.Handled = true;
+            if (HasSelection())              { CopySelection(); }
+            else if (box.SelectionLength &gt; 0) { box.Copy(); }
+            return;
+        case Key.X:
+            e.Handled = true;
+            if (_host.IsReadOnly) return;
+            if (HasSelection())              { CopySelection(); DeleteSelection(); }
+            else if (box.SelectionLength &gt; 0) { box.Cut(); }
+            return;
+        case Key.A:
+            e.Handled = true;
+            SelectAll();
+            return;
+        case Key.V:
+            e.Handled = true;
+            if (_host.IsReadOnly) return;
+            PasteInto(box);
+            return;
+    }
+}
+</code></pre>
+<p><strong>保留 <code>PreviewExecuted</code> 兜底的命令</strong>（它们不受选区长度限制，且能兜住右键菜单入口）：</p>
+<pre><code class="language-csharp">private void OnLinePreviewExecuted(object sender, ExecutedRoutedEventArgs e)
+{
+    if (sender is not TextBox box) return;
+    if (e.Command == ApplicationCommands.Paste)      { e.Handled = true; PasteInto(box); }
+    else if (e.Command == ApplicationCommands.SelectAll) { e.Handled = true; SelectAll(); }
+    else if (e.Command == ApplicationCommands.Copy &amp;&amp; HasSelection())   { e.Handled = true; CopySelection(); }
+    else if (e.Command == ApplicationCommands.Cut  &amp;&amp; HasSelection())   { e.Handled = true; CutFocused(); }
+    else if (e.Command == ApplicationCommands.Delete &amp;&amp; HasSelection()) { e.Handled = true; if (!_host.IsReadOnly) DeleteSelection(); }
+}
+</code></pre>
+<blockquote>
+<p><strong>⚠️ 强行记住这条规则</strong>：编辑区的 Ctrl+C/X/A/V <strong>不要</strong>改回命令路由拦截。
+现状是&quot;键路（<code>PreviewKeyDown</code>）为主 + 命令路（<code>PreviewExecuted</code>）兜底&quot;。</p>
+</blockquote>
+<p><strong>编辑区完整键位表</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>键位</th>
+<th>行为</th>
+<th>处理层</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Ctrl+C</code></td>
+<td>复制跨行选区（无跨行选区时退回单行）</td>
+<td><code>PreviewKeyDown</code></td>
+</tr>
+<tr>
+<td><code>Ctrl+X</code></td>
+<td>剪切跨行选区</td>
+<td><code>PreviewKeyDown</code></td>
+</tr>
+<tr>
+<td><code>Ctrl+A</code></td>
+<td>全选（装饰器高亮所有行）</td>
+<td><code>PreviewKeyDown</code></td>
+</tr>
+<tr>
+<td><code>Ctrl+V</code></td>
+<td>粘贴（多行内容自动拆行）</td>
+<td><code>PreviewKeyDown</code></td>
+</tr>
+<tr>
+<td><code>Ctrl+Z</code></td>
+<td>撤销</td>
+<td><code>PreviewKeyDown</code>（<code>_host.Undo()</code>）</td>
+</tr>
+<tr>
+<td><code>Ctrl+Y</code> / <code>Ctrl+Shift+Z</code></td>
+<td>重做</td>
+<td><code>PreviewKeyDown</code>（<code>_host.Redo()</code>）</td>
+</tr>
+<tr>
+<td><code>Backspace</code></td>
+<td>行首时合并到上一行（空行则删除该行）</td>
+<td><code>PreviewKeyDown</code></td>
+</tr>
+<tr>
+<td><code>Delete</code></td>
+<td>有选区时删除选区；行尾时把下一行合并进来</td>
+<td><code>PreviewKeyDown</code></td>
+</tr>
+<tr>
+<td><code>Enter</code></td>
+<td>有选区时替换选区为换行；否则在光标处换行</td>
+<td><code>PreviewKeyDown</code></td>
+</tr>
+<tr>
+<td><code>Escape</code></td>
+<td>清除跨行选区</td>
+<td><code>PreviewKeyDown</code></td>
+</tr>
+<tr>
+<td>方向键 / Home / End / PageUp / PageDown</td>
+<td>清除跨行选区，交由原生处理</td>
+<td><code>PreviewKeyDown</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong><code>Ctrl+Z</code> / <code>Ctrl+Y</code> 统一接管的原因</strong>：内容按&quot;行集合&quot;维护，
+原生 TextBox 的单行撤销栈跨行不可靠，因此撤销重做由宿主统一实现。
+<strong>改这层拦截器后必须回归 Ctrl+Z / Ctrl+Y</strong>，确认没被新的 <code>e.Handled = true</code> 吃掉。</p>
+</blockquote>
+<h4 id="section-53">陷阱二：选中文字时界面卡死</h4>
+<p><strong>症状</strong>：在编辑区拖选文字时卡顿，整个软件跟着无响应，<strong>松开鼠标后仍不恢复</strong>。</p>
+<p><strong>根因</strong>：<code>SelectionAdorner</code> 原实现在 <code>LayoutUpdated</code> 里<strong>无条件</strong> <code>InvalidateVisual()</code>。
+<code>LayoutUpdated</code> 每个布局周期（含纯渲染周期）都会触发，而 <code>InvalidateVisual()</code>
+会再次引发布局 → 形成 <strong>&quot;重绘 → 布局 → 再重绘&quot; 的自激循环</strong>。
+且 <code>OnRender</code> 内还在做 <code>GetRectFromCharacterIndex</code> 逐字符几何计算，进一步放大开销。</p>
+<p><strong>实测数据</strong>（受控 A/B，中位数，取 UI 线程占用）：</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>空闲</th>
+<th>拖选</th>
+<th>松手后静置</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>修复前</td>
+<td>3.9%</td>
+<td>133.9%</td>
+<td><strong>101.3%</strong></td>
+</tr>
+<tr>
+<td>修复后</td>
+<td>4.3%</td>
+<td>52%</td>
+<td><strong>3.6%</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>修复要点（4 条，缺一不可）</strong>：</p>
+<ol>
+<li><code>SetRanges</code> 里<strong>预先算好矩形</strong>存入 <code>_cachedRects</code>，<code>OnRender</code> 只做 <code>DrawRectangle</code></li>
+<li>逐字符矩形按 <code>TextBox</code> 缓存（<code>SelectionGeometryCache._charRects</code>），
+失效键为 <code>TextLength / FontSize / ActualWidth</code></li>
+<li><strong>无选区时完全不触碰装饰器</strong>（<code>SetRanges(null)</code> 会强制 <code>InvalidateVisual</code>）</li>
+<li>加入<strong>端点指纹</strong>（<code>SameRanges</code>），选区端点未变时直接复用 <code>_rects</code>，
+拖动只重算受影响的少数几行</li>
+</ol>
+<h4 id="section-54">陷阱三：行尾最后一个字选不上</h4>
+<p>这是同一处代码的<strong>两个独立 bug</strong>，都属于&quot;缓存优化引入的回归&quot;：</p>
+<p><strong>bug A：每段最后一个字选不上</strong>（从前往后拖选也选不上）</p>
+<ul>
+<li><strong>根因</strong>：为做缓存，把&quot;行尾插入点&quot;的矩形改成了<strong>手工拼接</strong>（末字符右移），
+拼出来的矩形<strong>宽度为 0</strong>，导致选区终点落在行尾时算不出可见高亮，
+该行选的选区长度被判定为 0。</li>
+<li><strong>修复</strong>：改回由<strong>原生接口</strong> <code>box.GetRectFromCharacterIndex(len)</code> 取行尾插入点矩形
+（取不到时才用 <code>MeasureSpaceWidth</code> 测出的字宽兜底），并修正右边界取值方式。</li>
+</ul>
+<pre><code class="language-csharp">// 行尾插入点：优先用原生查询，取不到时再退回「末字符右移」的保守近似，并保证高度非零
+var tail = box.GetRectFromCharacterIndex(len);
+if (tail.Height &lt;= 0 &amp;&amp; tail.Width &lt;= 0)
+{
+    var last = len &gt; 0 ? arr[len - 1] : new Rect(0, 0, 0, box.ActualHeight);
+    var h = last.Height &gt; 0 ? last.Height : box.ActualHeight;
+    var w = MeasureSpaceWidth(box);   // 用一个空文本测量出的字宽，避免零宽矩形
+    tail = new Rect(last.Right, last.Top, w, h);
+}
+arr[len] = tail;
+</code></pre>
+<p><strong>bug B：从后往前拖选时，行尾最后一个字仍选不中</strong></p>
+<ul>
+<li><strong>根因</strong>：<code>GetCharacterIndexFromPoint</code> 在文本右侧的空白处
+<strong>永远不会返回&quot;行尾位置&quot;</strong>（最多给出最后一个字的索引），
+而旧代码只在这个接口返回失败时才回退到行尾。于是：
+<ul>
+<li>从前往后拖选时，光标会落到下一行行首，行尾由整行补全 → <strong>看不出问题</strong></li>
+<li>从后往前拖选时，上一行的末端必须正好等于&quot;行尾位置&quot; →
+这个位置<strong>永远取不到</strong>，导致该行最后一个字始终漏选</li>
+</ul>
+</li>
+<li><strong>修复</strong>：先取&quot;行尾插入点&quot;的<strong>实际坐标</strong>，指针越过该点即判定为行尾，
+不再依赖系统接口的返回值。</li>
+</ul>
+<h4 id="section-55">选区矩形生成逻辑（支持自动换行）</h4>
+<p>按<strong>视觉行</strong>分段：逐字符遍历，用 <code>r.Top &gt; top + 0.5</code> 判断是否换行，
+换行时先把上一视觉行收尾（右端取上一字符的右边缘），再以新行起点继续。</p>
+<pre><code class="language-csharp">for (var i = s + 1; i &lt;= e; i++)
+{
+    var r = CharRectAt(charRects, i);
+    if (r.Top &gt; top + 0.5)
+    {
+        // 换行：先把上一视觉行收尾，右端为上一字符的右边缘
+        AddRow(rects, matrix, x0, CharRectAt(charRects, i - 1).Right, top, height);
+        top = r.Top; height = r.Height &gt; 0 ? r.Height : height; x0 = r.Left;
+    }
+    x1 = r.Left;
+}
+if (x1 &lt;= x0) x1 = CharRectAt(charRects, e).Right;
+AddRow(rects, matrix, x0, x1, top, height);
+</code></pre>
+<p><strong>右端取值规则</strong>：取&quot;<code>e</code> 位置插入点矩形的左边缘&quot;，当 <code>e == len</code> 时那正是
+<strong>最后一字的右边缘</strong>，因此行尾字符也能被完整高亮。</p>
+<blockquote>
+<p><code>AddRow</code> 里的可见性判断用<strong>极小容差</strong> <code>x1 - x0 &lt;= 0.01</code>，
+避免浮点舍入把行尾一个像素的行吞掉。</p>
+</blockquote>
+<h4 id="section-56">坐标系与变换</h4>
+<p>行的 <code>TextBox</code> 相对装饰器可能有位移与缩放，因此矩形需经变换矩阵映射。
+注意 <code>TransformToVisual</code> 的<strong>静态返回类型是 <code>GeneralTransform</code>（无 <code>.Value</code> 属性）</strong>，
+实际运行时对象是 <code>MatrixTransform</code>，必须用模式匹配取矩阵：</p>
+<pre><code class="language-csharp">if (box.TransformToVisual(adorner) is not MatrixTransform matrixTransform) continue;
+var matrix = matrixTransform.Matrix;
+// 变换在本场景下是「平移 + 等比缩放」，宽度缩放等于对角线缩放 m11
+</code></pre>
+<h3 id="wpf">11.11 纸张质感实现（纯 WPF 绘制）</h3>
+<h4 id="mica-acrylic">为什么不用 Mica / Acrylic</h4>
+<p><strong>便签窗口用不了系统材质，这是架构级的限制</strong>：</p>
+<ol>
+<li>便签窗口用了 <code>AllowsTransparency=True</code>（<strong>分层窗口</strong>），与 DWM 系统背景材质<strong>互斥</strong></li>
+<li>系统材质在 <strong>Windows 10 上不可用</strong></li>
+</ol>
+<p>因此改用<strong>纯 WPF 绘制</strong>方案，在 Win10 / Win11 表现完全一致，零兼容风险。</p>
+<h4 id="section-57">三层叠加</h4>
+<p>在便签底层叠加三个<strong>半透明</strong>画刷，因此能跟 12 种便签底色<strong>自然融合</strong>，
+不需要为每种颜色各配一套纹理：</p>
+<table>
+<thead>
+<tr>
+<th>画刷</th>
+<th>作用</th>
+<th>关键参数</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>PaperFiberBrush</code></td>
+<td>纸纤维（极淡的不规则短划线平铺）</td>
+<td>24×24 tile，三档浓度 <code>#08</code> / <code>#0A</code> / <code>#0C</code>，整体 <code>Opacity=0.5</code></td>
+</tr>
+<tr>
+<td><code>PaperLightBrush</code></td>
+<td>上方光照（顶部一点暖白，往下 120px 内淡出）</td>
+<td><code>#14FFFFFF</code> → <code>#06FFFFFF</code></td>
+</tr>
+<tr>
+<td>纸边厚度渐变</td>
+<td>纸边厚度感</td>
+<td>线性渐变</td>
+</tr>
+</tbody>
+</table>
+<h4 id="tile">⚠️ 最大的技术教训：小尺寸 tile 会产生可见网格</h4>
+<p><strong>早先试过 6×6 的 tile，肉眼能看到规则网格，像&quot;布纹/网纱&quot;而不是纸。</strong></p>
+<p>量化定位过程（用水平自相关函数测周期性）：</p>
+<pre><code>6×6 tile  → 自相关在 lag=18（即 6 的整数倍）出现 0.98 的强峰
+24×24 tile + 短划线全部偏离网格交点 + 三档浓度（#08/#0A/#0C）互相错开
+          → 自相关峰值 lag=2 → 0.81，之后平滑衰减，无次级峰
+</code></pre>
+<p><strong>结论：纹理类视觉参数不要靠肉眼判断。</strong>
+用<strong>自相关函数</strong>测周期性（有无次级峰），用<strong>亮度标准差</strong>测强度（会不会太脏），
+一次就能定位。</p>
+<p><strong>强度基线（参考值）</strong>：纸纤维纹理亮度极差 <strong>6~7</strong>（量程 255）、<strong>sd ≈ 0.9</strong>。
+正常距离下只表现为&quot;纸面不光滑&quot;，<strong>看清了就说明做脏了</strong>。</p>
+<h4 id="section-58">密度刻意做得很低</h4>
+<p>纤维只画 <strong>1.5% 左右的黑</strong>。密度做了三档错开，避免所有纤维同等强度
+而产生&quot;花纹&quot;的规整感。</p>
+<hr />
+<h2 id="section-59">第三部分：开发流程</h2>
+<blockquote>
+<p><strong>开发工具</strong>：Claude Code for VS Code 插件 → 后续改用 WorkBuddy（AI 辅助开发）
+<strong>工作目录</strong>：<code>D:\PJ\Note\</code>
+<strong>开发原则</strong>：每个 Phase 开始前发前置指令，每个 Task 完成后验证编译通过，上下文过长时新建对话</p>
+</blockquote>
+<h2 id="phase-0">12. Phase 0：项目骨架</h2>
+<h3 id="section-60">目标</h3>
+<p>搭建 WPF .NET 10 项目基础框架，包括 DI 容器、日志、单实例、资源字典。</p>
+<h3 id="section-61">任务清单</h3>
+<table>
+<thead>
+<tr>
+<th>任务</th>
+<th>内容</th>
+<th>关键文件</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>T0-1</td>
+<td>创建 WPF .NET 10 项目骨架</td>
+<td><code>Note.sln</code>、<code>Note.App.csproj</code>、<code>App.xaml</code></td>
+</tr>
+<tr>
+<td>T0-2</td>
+<td>配置依赖注入容器</td>
+<td><code>App.xaml.cs</code>、<code>Helpers/ServiceLocator.cs</code></td>
+</tr>
+<tr>
+<td>T0-3</td>
+<td>配置 Serilog 日志</td>
+<td><code>appsettings.json</code>、<code>Helpers/LogHelper.cs</code></td>
+</tr>
+<tr>
+<td>T0-4</td>
+<td>实现单实例运行</td>
+<td><code>App.xaml.cs</code>（Mutex）</td>
+</tr>
+<tr>
+<td>T0-5</td>
+<td>配置项目资源字典</td>
+<td><code>Resources/Colors.xaml</code>、<code>Styles.xaml</code>、<code>Icons.xaml</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="section-62">关键实现</h3>
+<ul>
+<li><strong>DI 容器</strong>：<code>Microsoft.Extensions.DependencyInjection</code>，在 <code>App.xaml.cs</code> 的 <code>OnStartup</code> 中依次配置日志、配置、服务，然后 <code>ServiceLocator.Initialize()</code></li>
+<li><strong>注册清单</strong>：IConfiguration、AppDbContext、4 个 Repository、多个 Service、Serilog.ILogger 全部单例</li>
+<li><strong>单实例</strong>：<code>Mutex</code> 命名互斥体，第二次启动检测到已有实例自动退出</li>
+<li><strong>根命名空间</strong>：<code>NoteApp</code>（因与模型类 <code>Note</code> 冲突，不用 <code>Note.App</code>）</li>
+</ul>
+<h3 id="section-63">完成验证</h3>
+<ul class="contains-task-list">
+<li class="task-list-item"><input disabled="disabled" type="checkbox" checked="checked" /> 编译通过 0 错误 0 警告</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" checked="checked" /> DI 容器解析成功</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" checked="checked" /> 单实例运行正常</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" checked="checked" /> 日志输出正常</li>
+</ul>
+<hr />
+<h2 id="phase-1">13. Phase 1：数据层</h2>
+<h3 id="section-64">目标</h3>
+<p>完成数据库初始化、Repository 层、Service 层、自动备份服务。</p>
+<h3 id="section-65">任务清单</h3>
+<table>
+<thead>
+<tr>
+<th>任务</th>
+<th>内容</th>
+<th>关键文件</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>T1-1 + T1-2</td>
+<td>完善 Model 类 + 数据库初始化</td>
+<td><code>Models/Note.cs</code>、<code>Tag.cs</code>、<code>Reminder.cs</code>、<code>Data/AppDbContext.cs</code></td>
+</tr>
+<tr>
+<td>T1-3</td>
+<td>实现 NoteRepository（核心）</td>
+<td><code>Data/Repositories/NoteRepository.cs</code></td>
+</tr>
+<tr>
+<td>T1-4</td>
+<td>实现 TagRepository + NoteTag 关联</td>
+<td><code>Data/Repositories/TagRepository.cs</code></td>
+</tr>
+<tr>
+<td>T1-5 + T1-6</td>
+<td>ReminderRepository + SettingsRepository</td>
+<td><code>Data/Repositories/ReminderRepository.cs</code>、<code>SettingsRepository.cs</code></td>
+</tr>
+<tr>
+<td>T1-7 + T1-8</td>
+<td>NoteService + SettingsService</td>
+<td><code>Services/NoteService.cs</code>、<code>SettingsService.cs</code></td>
+</tr>
+<tr>
+<td>T1-9</td>
+<td>自动备份服务</td>
+<td><code>Services/BackupService.cs</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="section-66">关键实现</h3>
+<ul>
+<li><strong>数据库初始化</strong>：应用启动时执行 <code>CREATE TABLE IF NOT EXISTS</code>，保证幂等</li>
+<li><strong>增量迁移</strong>：<code>MigrateSchema</code> 每次启动检查缺列并补加（见 §8.3）</li>
+<li><strong>Repository 模式</strong>：每个实体对应一个 Repository 接口 + 实现，封装 SQL 操作</li>
+<li><strong>Service 层</strong>：业务逻辑层，调用 Repository，触发事件（NoteCreated / NoteUpdated 等）</li>
+<li><strong>自动备份</strong>：定期备份数据库到 <code>%APPDATA%\今日营业中\Backup\</code></li>
+<li><strong>软删除</strong>：删除便签只设置 <code>DeletedAt</code>，不真正删除，可恢复</li>
+</ul>
+<h3 id="section-67">完成验证</h3>
+<ul class="contains-task-list">
+<li class="task-list-item"><input disabled="disabled" type="checkbox" checked="checked" /> 编译通过</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" checked="checked" /> 数据库文件正常创建</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" checked="checked" /> CRUD 操作正常</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" checked="checked" /> 自动备份正常</li>
+</ul>
+<hr />
+<h2 id="phase-2-ui">14. Phase 2：便签窗口 UI</h2>
+<h3 id="section-68">目标</h3>
+<p>实现便签窗口的无边框、圆角、标题栏、内容编辑区、状态栏，以及折叠 / 锁定 / 置顶状态。</p>
+<h3 id="section-69">任务清单</h3>
+<table>
+<thead>
+<tr>
+<th>任务</th>
+<th>内容</th>
+<th>关键文件</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>T2-1</td>
+<td>无边框窗口 + 圆角</td>
+<td><code>Views/NoteWindow.xaml</code></td>
+</tr>
+<tr>
+<td>T2-2</td>
+<td>标题栏 + 控制按钮</td>
+<td><code>Views/NoteWindow.xaml</code>、<code>Helpers/TitleBarColorHelper.cs</code></td>
+</tr>
+<tr>
+<td>T2-3</td>
+<td>内容编辑区（多行）</td>
+<td><code>Helpers/NoteLineEditor.cs</code>、<code>ViewModels/NoteLineViewModel.cs</code></td>
+</tr>
+<tr>
+<td>T2-4</td>
+<td>状态栏（颜色 / 置顶 / 折叠 / 锁定）</td>
+<td><code>Views/NoteWindow.xaml</code></td>
+</tr>
+<tr>
+<td>T2-5</td>
+<td>折叠态 / 锁定态</td>
+<td><code>ViewModels/NoteWindowViewModel.cs</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="section-70">关键实现</h3>
+<ul>
+<li><strong>光标与选区</strong>：见 §11.10，跨行选区是本 Phase 最复杂的部分</li>
+<li><strong>折叠态</strong>需要额外承担两个信息职责：语义色脊 + 待办徽标（见 §6）</li>
+<li><strong>锁定态</strong>必须有&quot;可读的说明 + 可退出的入口&quot;</li>
+</ul>
+<h3 id="section-71">完成验证</h3>
+<ul class="contains-task-list">
+<li class="task-list-item"><input disabled="disabled" type="checkbox" checked="checked" /> 便签窗口圆角、无黑边</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" checked="checked" /> 标题栏颜色跟随主题</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" checked="checked" /> 内容可编辑、自动保存</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" checked="checked" /> 折叠 / 锁定 / 置顶状态正常</li>
+</ul>
+<hr />
+<h2 id="phase-3">15. Phase 3：窗口管理 + 系统集成</h2>
+<h3 id="section-72">目标</h3>
+<p>完成窗口的创建 / 恢复 / 关闭、置顶不抢焦点、全局快捷键、系统托盘、开机自启。</p>
+<h3 id="section-73">任务清单</h3>
+<table>
+<thead>
+<tr>
+<th>任务</th>
+<th>内容</th>
+<th>关键文件</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>T3-1</td>
+<td>WindowService 窗口管理</td>
+<td><code>Services/WindowService.cs</code></td>
+</tr>
+<tr>
+<td>T3-2</td>
+<td>置顶不抢焦点</td>
+<td><code>Native/WindowNativeMethods.cs</code></td>
+</tr>
+<tr>
+<td>T3-3</td>
+<td>全局快捷键</td>
+<td><code>Services/HotkeyService.cs</code></td>
+</tr>
+<tr>
+<td>T3-4</td>
+<td>系统托盘</td>
+<td><code>Services/TrayService.cs</code></td>
+</tr>
+<tr>
+<td>T3-5</td>
+<td>开机自启</td>
+<td><code>Services/AutostartService.cs</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="section-74">关键实现</h3>
+<ul>
+<li><strong>启动恢复</strong>：<code>RestoreNoteWindows()</code> 按库恢复全部便签窗口</li>
+<li><strong>置顶不抢焦点</strong>：<code>WM_MOUSEACTIVATE</code> 返回 <code>MA_NOACTIVATE</code></li>
+<li><strong>全局快捷键</strong>：<code>RegisterHotKey</code> / <code>WM_HOTKEY</code></li>
+</ul>
+<h3 id="section-75">完成验证</h3>
+<ul class="contains-task-list">
+<li class="task-list-item"><input disabled="disabled" type="checkbox" checked="checked" /> 启动恢复正常</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" checked="checked" /> 置顶不抢焦点</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" checked="checked" /> 全局快捷键生效</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" checked="checked" /> 托盘图标与菜单正常</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" checked="checked" /> 开机自启可开关</li>
+</ul>
+<hr />
+<h2 id="phase-4">16. Phase 4：便签列表面板</h2>
+<h3 id="section-76">目标</h3>
+<p>实现&quot;信件管理室&quot;三栏布局的便签列表面板。</p>
+<h3 id="section-77">任务清单</h3>
+<table>
+<thead>
+<tr>
+<th>任务</th>
+<th>内容</th>
+<th>关键文件</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>T4-1</td>
+<td>三栏布局</td>
+<td><code>Views/NoteListView.xaml</code></td>
+</tr>
+<tr>
+<td>T4-2</td>
+<td>侧边栏分类导航</td>
+<td><code>ViewModels/CategoryItem.cs</code></td>
+</tr>
+<tr>
+<td>T4-3</td>
+<td>便签卡片列表</td>
+<td><code>ViewModels/NoteItemViewModel.cs</code></td>
+</tr>
+<tr>
+<td>T4-4</td>
+<td>搜索 / 排序 / 批量操作</td>
+<td><code>ViewModels/NoteListViewModel.cs</code></td>
+</tr>
+<tr>
+<td>T4-5</td>
+<td>右侧编辑预览区</td>
+<td><code>ViewModels/NotePreviewViewModel.cs</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="section-78">关键实现</h3>
+<ul>
+<li><strong>列表刷新防重复</strong>：三重保护（见 §11.9）</li>
+<li><strong>主页编辑区</strong>与独立便签窗口<strong>双向同步</strong>，见 §24.5.1</li>
+<li><strong>单栏标题栏</strong>：<code>WindowStyle=&quot;None&quot;</code> + <code>WindowChrome</code> 实现拖动与调整大小</li>
+</ul>
+<h3 id="section-79">完成验证</h3>
+<ul class="contains-task-list">
+<li class="task-list-item"><input disabled="disabled" type="checkbox" checked="checked" /> 三栏布局正常</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" checked="checked" /> 搜索 / 排序 / 筛选正常</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" checked="checked" /> 批量操作正常</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" checked="checked" /> 编辑预览区与便签窗口双向同步</li>
+</ul>
+<hr />
+<h2 id="phase-5">17. Phase 5：设置页</h2>
+<h3 id="section-80">目标</h3>
+<p>完成通用 / 外观 / 快捷键 / 数据 / 关于五个设置页。</p>
+<h3 id="section-81">任务清单</h3>
+<table>
+<thead>
+<tr>
+<th>任务</th>
+<th>内容</th>
+<th>关键文件</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>T5-1</td>
+<td>设置窗口框架 + 左侧导航</td>
+<td><code>Views/SettingsWindow.xaml</code>、<code>ViewModels/SettingsViewModel.cs</code></td>
+</tr>
+<tr>
+<td>T5-2</td>
+<td>通用设置</td>
+<td><code>ViewModels/GeneralSettingsViewModel.cs</code></td>
+</tr>
+<tr>
+<td>T5-3</td>
+<td>外观设置（主题 / 12 色板 / 字号 / 字体 / 透明度）</td>
+<td><code>ViewModels/AppearanceSettingsViewModel.cs</code></td>
+</tr>
+<tr>
+<td>T5-4</td>
+<td>快捷键设置</td>
+<td><code>ViewModels/HotkeySettingsViewModel.cs</code></td>
+</tr>
+<tr>
+<td>T5-5</td>
+<td>数据设置（备份 / 导入导出）</td>
+<td><code>ViewModels/DataSettingsViewModel.cs</code></td>
+</tr>
+<tr>
+<td>T5-6</td>
+<td>关于页</td>
+<td><code>ViewModels/AboutViewModel.cs</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="section-82">关键实现</h3>
+<ul>
+<li><strong>设置即时生效</strong>：任一设置变更通过 <code>SettingsService</code> 落库并广播变更事件，
+便签窗口 / 列表 / 编辑区订阅后实时响应（如 <code>appearance.font_size</code>、<code>appearance.note_font</code>）</li>
+<li><strong>色板选择器</strong>从 <code>NoteColorHelper.All</code> 取值，保证与便签菜单同源</li>
+</ul>
+<h3 id="section-83">完成验证</h3>
+<ul class="contains-task-list">
+<li class="task-list-item"><input disabled="disabled" type="checkbox" checked="checked" /> 五个设置页正常</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" checked="checked" /> 设置即时生效</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" checked="checked" /> 设置持久化</li>
+</ul>
+<hr />
+<h2 id="phase-6">18. Phase 6：提醒功能</h2>
+<h3 id="section-84">目标</h3>
+<p>完成单次 / 每日 / 每周 / 工作日 / 每月五种重复规则的提醒服务与通知。</p>
+<h3 id="section-85">任务清单</h3>
+<table>
+<thead>
+<tr>
+<th>任务</th>
+<th>内容</th>
+<th>关键文件</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>T6-1</td>
+<td>提醒数据模型 + Repository</td>
+<td><code>Models/Reminder.cs</code>、<code>Data/Repositories/ReminderRepository.cs</code></td>
+</tr>
+<tr>
+<td>T6-2</td>
+<td>ReminderService 计时与触发</td>
+<td><code>Services/ReminderService.cs</code></td>
+</tr>
+<tr>
+<td>T6-3</td>
+<td>提醒设置弹窗</td>
+<td><code>Views/ReminderPicker.xaml</code></td>
+</tr>
+<tr>
+<td>T6-4</td>
+<td>提醒通知窗口</td>
+<td><code>Views/ReminderNotification.xaml</code></td>
+</tr>
+<tr>
+<td>T6-5</td>
+<td>稍后提醒（Snooze）</td>
+<td><code>Views/SnoozeInputDialog.xaml</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="section-86">关键实现</h3>
+<ul>
+<li><strong>重复规则</strong>：<code>RepeatRule</code> 枚举 none / daily / weekly / workdays / monthly</li>
+<li><strong>通知管理器</strong>：<code>Helpers/NotificationManager.cs</code> 统一管理提示窗口（含 Toast）</li>
+</ul>
+<h3 id="section-87">完成验证</h3>
+<ul class="contains-task-list">
+<li class="task-list-item"><input disabled="disabled" type="checkbox" checked="checked" /> 五种重复规则正常</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" checked="checked" /> 到点触发通知</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" checked="checked" /> 稍后提醒正常</li>
+</ul>
+<hr />
+<h2 id="phase-6.5">19. Phase 6.5：优化与完善</h2>
+<h3 id="section-88">目标</h3>
+<p>在功能齐备后做一轮体验与稳定性优化。</p>
+<h3 id="section-89">任务清单</h3>
+<ul>
+<li>性能：启动速度、内存占用、列表滚动流畅度</li>
+<li>体验：悬停显隐、动画过渡、快捷键补全</li>
+<li>稳定性：异常兜底、日志完善</li>
+</ul>
+<h3 id="section-90">完成验证</h3>
+<ul class="contains-task-list">
+<li class="task-list-item"><input disabled="disabled" type="checkbox" checked="checked" /> 各项优化项达标</li>
+</ul>
+<hr />
+<h2 id="phase-7">20. Phase 7：打包发布</h2>
+<h3 id="section-91">目标</h3>
+<p>完成发布前配置、Release 发布、便携版制作、安装包制作、最终测试、发布文档。</p>
+<h3 id="section-92">任务清单</h3>
+<table>
+<thead>
+<tr>
+<th>任务</th>
+<th>内容</th>
+<th>关键文件</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>T7-1</td>
+<td>发布前配置与元数据完善</td>
+<td><code>Note.App.csproj</code>、<code>AssemblyInfo</code></td>
+</tr>
+<tr>
+<td>T7-2</td>
+<td>Release 发布构建（自包含单文件）</td>
+<td><code>publish/Note.App.exe</code></td>
+</tr>
+<tr>
+<td>T7-3</td>
+<td>便携版制作（ZIP）</td>
+<td><code>release/今日营业中_v{版本}_便携版.zip</code>（当前 v1.5.3）</td>
+</tr>
+<tr>
+<td>T7-4</td>
+<td>安装包制作（Inno Setup）</td>
+<td><code>installer/setup.iss</code>（<strong>当前发布流程只出便携版 ZIP</strong>，安装包按需编译）</td>
+</tr>
+<tr>
+<td>T7-5</td>
+<td>发布前最终测试清单</td>
+<td>测试报告</td>
+</tr>
+<tr>
+<td>T7-6</td>
+<td>发布文档（更新日志 + 使用说明）</td>
+<td><code>更新日志.txt</code>、<code>使用说明.txt</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="section-93">关键实现</h3>
+<h4 id="t7-1">T7-1：发布前配置</h4>
+<ul>
+<li>程序集版本：1.5.3.0（随版本发布更新，首次发布时为 1.1.0.0；<strong>改版本号后必须重新 publish</strong>）</li>
+<li>产品名称：今日营业中</li>
+<li>公司：苏羽野</li>
+<li>版权：Copyright © 2026 苏羽野</li>
+<li>应用图标：app.ico</li>
+</ul>
+<h4 id="t7-2release">T7-2：Release 发布</h4>
+<p><strong>构建命令（先构建，验证产物时间戳真正更新）</strong>：</p>
+<pre><code class="language-bash">cd D:\PJ\Note
+dotnet build src/Note.App/Note.App.csproj -c Release -r win-x64 --no-incremental
+</code></pre>
+<p><strong>发布命令（固化为脚本，不要每次手敲）</strong>：</p>
+<pre><code class="language-bash">dotnet publish src/Note.App/Note.App.csproj -c Release -r win-x64 \
+  --self-contained true -p:PublishSingleFile=true \
+  -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=none \
+  -o &quot;D:\PJ\Note\publish&quot;
+</code></pre>
+<p><strong>产物基线（用于校验发布是否正确，随版本微浮动；当前为 v1.5.3）</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>期望值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>publish/Note.App.exe</code></td>
+<td><strong>约 149 MB</strong>（v1.5.3 实测 149,258,768 bytes ≈ 142 MiB；内嵌版本号必须与 csproj 一致）</td>
+</tr>
+<tr>
+<td><code>release/今日营业中_v{版本}_便携版.zip</code></td>
+<td><strong>约 63 MiB</strong>（v1.5.3 实测 66,254,697 bytes）</td>
+</tr>
+</tbody>
+</table>
+<p><strong>参数逐条说明（少一个就会出问题）</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>作用</th>
+<th>漏掉的后果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>-r win-x64</code></td>
+<td>指定目标运行时</td>
+<td>与构建走不同 <code>obj</code> 子目录，增量构建可能假成功</td>
+</tr>
+<tr>
+<td><code>--self-contained true</code></td>
+<td>自包含</td>
+<td>用户需自行安装 .NET 运行时</td>
+</tr>
+<tr>
+<td><code>-p:PublishSingleFile=true</code></td>
+<td>单文件</td>
+<td>输出一堆零散文件</td>
+</tr>
+<tr>
+<td><strong><code>-p:IncludeNativeLibrariesForSelfExtract=true</code></strong></td>
+<td><strong>把 WPF 原生库一起打进单文件</strong></td>
+<td><strong>启动即崩</strong>（<code>DllNotFoundException</code>，见 §22.3）</td>
+</tr>
+<tr>
+<td><code>-p:DebugType=none</code></td>
+<td>不生成调试符号</td>
+<td>输出多余的 <code>Note.App.pdb</code></td>
+</tr>
+<tr>
+<td><code>-o</code> <strong>Windows 风格路径</strong></td>
+<td>输出目录</td>
+<td>Git Bash 下 <code>/d/...</code> 会被 MSYS 转换错</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>❌ <strong>绝对不要加 <code>-p:EnableCompressionInSingleFile=true</code></strong>：
+会把 exe 压到约 72 MB，且更容易被 <strong>Windows 11 智能应用控制（SAC）</strong> 拦截未签名的新 exe。</p>
+</blockquote>
+<blockquote>
+<p>❌ <strong><code>dotnet publish</code> 不接受 <code>--no-incremental</code></strong>（那是 <code>dotnet build</code> 的参数），
+加了会报 <code>MSBUILD : error MSB1001: 未知开关</code>。</p>
+</blockquote>
+<p><strong>当前发布链（v1.5.x 起脚本化，<code>Temp/</code> 目录）</strong>：</p>
+<pre><code>bump_version（只认 release/今日营业中_vX_便携版 命名）→ publish → sync_portable（双目录）
+→ read_exe_version（校验内嵌版本号）→ smoke_test → pack_zip → 旧产物挪 _archive/
+</code></pre>
+<blockquote>
+<p>⚠️ 脚本<strong>不删文件</strong>；同一版本号重复刷新时 <code>pack_zip</code> 会遗留 <code>.zip.old</code> 归档，
+<code>_archive/</code> 里同名冲突需改名加序号（<code>.old2</code>）。发布验证见 §23。</p>
+</blockquote>
+<h4 id="t7-3">T7-3：便携版制作</h4>
+<p><strong>目录结构</strong>：</p>
+<pre><code>今日营业中 v{版本} 便携版/
+├── 今日营业中.exe（重命名自 Note.App.exe）
+├── appsettings.json
+├── 使用说明.txt（UTF-8 BOM，含详细卸载步骤）
+└── 更新日志.txt（UTF-8 BOM）
+</code></pre>
+<ul>
+<li><strong>打包方式</strong>：Python <code>zipfile</code> + <code>ZIP_DEFLATED, compresslevel=9</code>，
+写入 <code>arcname</code> 时<strong>手动拼接 UTF-8 中文名</strong>（<code>folder + '/' + basename</code>），避免中文乱码</li>
+<li><strong>数据存储</strong>：<code>%APPDATA%\今日营业中\</code>（不是程序目录，即使用户把程序放在只读目录也能正常保存）</li>
+</ul>
+<h4 id="t7-4inno-setup">T7-4：安装包制作（Inno Setup）</h4>
+<ul>
+<li><strong>脚本</strong>：<code>installer/setup.iss</code></li>
+<li><strong>编译命令</strong>：<code>&quot;C:\Program Files (x86)\Inno Setup 6\ISCC.exe&quot; &quot;D:\PJ\Note\installer\setup.iss&quot;</code></li>
+<li><strong>产物</strong>：<code>release/今日营业中_v{版本}_安装包.exe</code>（约 49 MB，lzma2 压缩；<strong>当前发布流程未使用</strong>，只出便携版 ZIP，脚本保留按需编译）</li>
+<li><strong>功能</strong>：
+<ul>
+<li>现代风格安装向导（<code>WizardStyle=modern</code>）</li>
+<li>默认安装到用户目录（不需要管理员权限）</li>
+<li>开始菜单快捷方式</li>
+<li>可选桌面快捷方式（默认不勾选）</li>
+<li>安装完成后可选立即运行</li>
+<li>卸载前检查软件是否运行，提示关闭</li>
+<li>卸载时自动删除开机自启注册表项（<code>TodayOpen</code>）</li>
+<li>用户数据默认保留（<code>%APPDATA%\今日营业中\</code>），重装后数据还在</li>
+</ul>
+</li>
+<li><strong>注意</strong>：Inno Setup 安装时如果没有安装中文语言文件，安装向导界面为英文（不影响功能）</li>
+</ul>
+<h4 id="t7-5">T7-5：最终测试清单</h4>
+<ul class="contains-task-list">
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> 便携版解压后能正常运行</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> 安装包能正常安装</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> 安装后开始菜单快捷方式正常</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> 桌面快捷方式正常（如勾选）</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> 软件能正常启动</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> 新建便签正常</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> 便签自动保存正常</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> 置顶不抢焦点正常</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> 全局快捷键正常</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> 系统托盘正常</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> 列表面板正常</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> 设置页正常</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> 提醒功能正常</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> 卸载正常</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> 卸载后注册表自启项被清除</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" /> 卸载后用户数据保留（符合预期）</li>
+</ul>
+<p><strong>v1.1.1 追加的交互回归清单</strong>（改动编辑区后必跑）：</p>
+<table>
+<thead>
+<tr>
+<th>用例</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>F1</td>
+<td>单行内拖选 → Ctrl+C</td>
+</tr>
+<tr>
+<td>F2</td>
+<td>拖选 3 行 → Ctrl+C，剪贴板 3 行齐全</td>
+</tr>
+<tr>
+<td>F3</td>
+<td>拖选 4 行 → Ctrl+X，剪贴板齐全 <strong>且源行减少</strong></td>
+</tr>
+<tr>
+<td>F4</td>
+<td>Ctrl+A → Ctrl+C，全部行在剪贴板</td>
+</tr>
+<tr>
+<td>F5</td>
+<td>Ctrl+A → Ctrl+X → Ctrl+Z 撤销 → Ctrl+Y 重做</td>
+</tr>
+</tbody>
+</table>
+<h4 id="t7-6">T7-6：发布文档</h4>
+<ul>
+<li><strong>更新日志.txt</strong>：版本更新内容、新增功能、Bug 修复</li>
+<li><strong>使用说明.txt</strong>：软件介绍、使用方法、数据存储、快捷键、安全提示、详细卸载与删除数据步骤（五步）</li>
+</ul>
+<h3 id="section-94">完成验证</h3>
+<ul class="contains-task-list">
+<li class="task-list-item"><input disabled="disabled" type="checkbox" checked="checked" /> 便携版 ZIP 存在且大小合理</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" checked="checked" /> 安装包 EXE 存在且大小合理</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" checked="checked" /> 安装包图标正确</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" checked="checked" /> 安装包文件属性（版本号、产品名）正确</li>
+<li class="task-list-item"><input disabled="disabled" type="checkbox" checked="checked" /> 最终测试全部通过</li>
+</ul>
+<hr />
+<h2 id="section-95">第四部分：附录</h2>
+<h2 id="section-96">21. 关键技术决策记录</h2>
+<h3 id="section-97">21.1 已验证做不通的方向</h3>
+<table>
+<thead>
+<tr>
+<th>方向</th>
+<th>问题</th>
+<th>替代方案</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>WindowChrome + GlassFrameThickness=0</td>
+<td>系统按钮（最小化 / 最大化 / 关闭）消失，不可用</td>
+<td>AllowsTransparency=True + WindowStyle=None</td>
+</tr>
+<tr>
+<td>EnableCompressionInSingleFile=true</td>
+<td>exe 压到约 72 MB，Windows 11 智能应用控制（SAC）更敏感，可能拦截未签名的新 exe</td>
+<td>不使用压缩，exe 约 149 MB 可接受</td>
+</tr>
+<tr>
+<td>Mica 材质</td>
+<td>alpha=0 区域渲染成黑色，与分层窗口互斥，Win10 不可用</td>
+<td>纯 WPF 绘制的纸张质感（见 §11.11）</td>
+</tr>
+<tr>
+<td>根命名空间 Note.App</td>
+<td>与模型类 Note 同名，导致 Note 被解析成命名空间（36 个 CS0118 错误）</td>
+<td>根命名空间改为单段 NoteApp，程序集名保持 Note.App</td>
+</tr>
+<tr>
+<td>小尺寸纹理 tile（6×6）</td>
+<td>肉眼可见规则网格，像&quot;布纹/网纱&quot;而非纸</td>
+<td>tile 放大到 24×24 + 短划线偏离网格交点 + 三档浓度错开</td>
+</tr>
+<tr>
+<td>用命令路由拦截编辑区 Ctrl+C / Ctrl+X</td>
+<td><code>CanExecute == false</code> 时不派发 <code>Executed</code>，拦截器永远收不到</td>
+<td>改在 <code>PreviewKeyDown</code> 里直接处理</td>
+</tr>
+<tr>
+<td>用纯黑做便签阴影</td>
+<td>压在彩色纸上会让边缘发脏灰</td>
+<td>阴影色跟随便签色相（暖色）</td>
+</tr>
+<tr>
+<td>用品牌橙 <code>#E8743B</code> 做折叠态待办徽标</td>
+<td>与便签配色无关，像&quot;外来的通知&quot;</td>
+<td>改用便签自身色系 + 勾选框图标 + 拉开间距</td>
+</tr>
+</tbody>
+</table>
+<h3 id="section-98">21.2 重要设计决策</h3>
+<table>
+<thead>
+<tr>
+<th>决策</th>
+<th>选择</th>
+<th>原因</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>UI 框架</td>
+<td>WPF + .NET 10</td>
+<td>性能好、Windows 原生集成方便、AI 生成质量高</td>
+</tr>
+<tr>
+<td>架构模式</td>
+<td>MVVM</td>
+<td>解耦 UI 和业务逻辑，便于测试和维护</td>
+</tr>
+<tr>
+<td>数据库</td>
+<td>SQLite</td>
+<td>轻量、无需安装、单文件、适合桌面应用</td>
+</tr>
+<tr>
+<td>便签窗口实现</td>
+<td>AllowsTransparency=True</td>
+<td>WindowChrome 会导致系统按钮消失</td>
+</tr>
+<tr>
+<td>标题栏颜色</td>
+<td>DwmSetWindowAttribute API</td>
+<td>可设置自定义标题栏颜色，支持主题自适应</td>
+</tr>
+<tr>
+<td>置顶不抢焦点</td>
+<td>WM_MOUSEACTIVATE 返回 MA_NOACTIVATE</td>
+<td>便签置顶但不影响其他窗口输入</td>
+</tr>
+<tr>
+<td>跨行选区</td>
+<td>编辑器自持选区状态 + Adorner 自绘</td>
+<td>WPF 原生选区无法跨越多个 TextBox</td>
+</tr>
+<tr>
+<td>编辑区键路</td>
+<td><code>PreviewKeyDown</code> 直接处理，命令路由兜底</td>
+<td>命令路由在跨行选区下不可靠（见 §11.10）</td>
+</tr>
+<tr>
+<td>撤销重做</td>
+<td>宿主统一接管</td>
+<td>内容按&quot;行集合&quot;维护，原生单行撤销栈跨行不可靠</td>
+</tr>
+<tr>
+<td>纸张质感</td>
+<td>纯 WPF 半透明绘制</td>
+<td>分层窗口与系统材质互斥，且 Win10 不可用</td>
+</tr>
+<tr>
+<td>色板真源</td>
+<td><code>NoteColorHelper.All</code></td>
+<td>单一列表，避免&quot;漏色&quot;（历史上出现过）</td>
+</tr>
+<tr>
+<td>数据存储位置</td>
+<td><code>%APPDATA%\今日营业中\</code></td>
+<td>即使用户把程序放在只读目录也能正常保存</td>
+</tr>
+<tr>
+<td>发布格式</td>
+<td>自包含单文件</td>
+<td>用户无需安装 .NET 运行时</td>
+</tr>
+<tr>
+<td>压缩选项</td>
+<td>不使用 EnableCompressionInSingleFile</td>
+<td>避免 SAC 拦截</td>
+</tr>
+<tr>
+<td>便携版打包</td>
+<td>Python zipfile（UTF-8）</td>
+<td>避免中文文件名乱码</td>
+</tr>
+<tr>
+<td>安装包工具</td>
+<td>Inno Setup</td>
+<td>免费、轻量、强大、支持中文</td>
+</tr>
+<tr>
+<td>代码签名</td>
+<td>未签名（当前版本）</td>
+<td>免费开源软件，用户可通过 &quot;更多信息→仍要运行&quot; 绕过；长期可考虑购买 Certum 开源代码签名证书（约 100 元 / 年）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="section-99">21.3 品牌与彩蛋</h3>
+<ul>
+<li><strong>软件名</strong>：今日营业中</li>
+<li><strong>创作者</strong>：苏羽野</li>
+<li><strong>品牌概念</strong>：信件管理室（便签 = 信件，列表面板 = 信件管理室）</li>
+<li><strong>含蓄彩蛋</strong>：紫罗兰永恒花园薇尔莉特相关元素（紫罗兰便签色、自动手记人偶概念、品牌概念强化），不出现角色名和图片，只有懂的人能看懂</li>
+</ul>
+<hr />
+<h2 id="section-100">22. 常见问题与解决方案</h2>
+<h3 id="section-101">22.1 开发环境问题</h3>
+<h4 id="q-ai-powershell">Q: 卡巴斯基拦截 AI 工具的 PowerShell 命令</h4>
+<p><strong>现象</strong>：卡巴斯基报 <code>HEUR:Trojan-Downloader.PowerShell.Bitser.gen</code>，拦截 AI 工具执行的 PowerShell 命令。</p>
+<p><strong>解决方案</strong>：将以下目录加入卡巴斯基排除项：</p>
+<ul>
+<li><code>%TEMP%\ai\</code>（AI 工具临时目录）</li>
+<li><code>D:\PJ\Note\</code>（项目目录）</li>
+<li><code>%APPDATA%\今日营业中\</code>（软件数据目录）</li>
+</ul>
+<h4 id="q-cs0118-note">Q: 编译时报 CS0118 错误（Note 被解析成命名空间）</h4>
+<p><strong>现象</strong>：项目改名 Note.App 后，根命名空间第一段 Note 与模型类 Note 同名，导致 36 个 CS0118 错误。</p>
+<p><strong>解决方案</strong>：根命名空间改为单段 <code>NoteApp</code>，程序集名保持 <code>Note.App</code>，模型 Note 保持原名。</p>
+<h4 id="q-dotnet-build">Q: <code>dotnet build</code> 报「成功」但根本没重新编译</h4>
+<p><strong>现象</strong>：改完 XAML 后 <code>dotnet build -c Release</code> 报 <strong>0 错误</strong>，但截图效果与改前<strong>逐字节相同</strong>。</p>
+<p><strong>根本原因</strong>：带 <code>-r</code> 与不带 <code>-r</code> 走<strong>不同的 <code>obj</code> 子目录</strong>
+（<code>obj/Release/net10.0-windows/</code> vs <code>obj/Release/net10.0-windows/win-x64/</code>），
+增量构建判定&quot;无变化&quot;直接跳过。</p>
+<p><strong>解决方案</strong>：加 <code>--no-incremental</code> 强制全量重建；或删掉 <code>obj</code> 对应子目录。</p>
+<p><strong>教训：改完 XAML / C# 要看产物时间戳（<code>Note.App.dll</code> 的 mtime 是否晚于源文件），不要只信&quot;0 错误&quot;。</strong></p>
+<h4 id="q-transformtovisual-value-cs1061">Q: <code>TransformToVisual</code> 报错找不到 <code>Value</code> 属性（CS1061）</h4>
+<p><strong>现象</strong>：<code>NoteLineEditor.cs</code> 报 CS1061：<code>GeneralTransform</code> 未包含 <code>Value</code>。</p>
+<p><strong>原因</strong>：<code>box.TransformToVisual(...)</code> 的<strong>静态返回类型是 <code>GeneralTransform</code></strong>（没有 <code>.Value</code>），
+实际运行时对象是 <code>MatrixTransform</code>。</p>
+<p><strong>解决方案</strong>：用模式匹配取矩阵。</p>
+<pre><code class="language-csharp">if (transform is not MatrixTransform matrixTransform) { continue; }
+drawingContext.PushTransform(new MatrixTransform(matrixTransform.Matrix));
+</code></pre>
+<h3 id="section-102">22.2 运行时问题</h3>
+<h4 id="q">Q: 便签窗口有黑边 / 方角</h4>
+<p><strong>现象</strong>：使用 WindowChrome 后，便签窗口出现黑边或方角，系统按钮消失。</p>
+<p><strong>解决方案</strong>：改用 <code>AllowsTransparency=True</code> + <code>WindowStyle=None</code>，用 XAML <code>CornerRadius</code> + <code>Clip</code> 实现圆角。</p>
+<h4 id="q-1">Q: 列表面板标题栏选中时变黑</h4>
+<p><strong>现象</strong>：列表面板窗口被选中时，标题栏呈现黑色，未选中时正常浅色。</p>
+<p><strong>解决方案</strong>：使用 <code>DwmSetWindowAttribute</code> Win32 API 设置标题栏背景色（<code>DWMWA_CAPTION_COLOR=35</code>）和文字色（<code>DWMWA_TEXT_COLOR=36</code>），封装为 <code>TitleBarColorHelper.ApplyByCurrentTheme()</code>。</p>
+<h4 id="q-2">Q: 深色模式下标题栏不跟随主题</h4>
+<p><strong>现象</strong>：切换到深色模式后，列表面板和设置窗口内容已变深色，但标题栏仍为浅色。</p>
+<p><strong>解决方案</strong>：</p>
+<ol>
+<li><code>IThemeService</code> 添加 <code>ThemeChanged</code> 事件</li>
+<li><code>ThemeService.ApplyTheme</code> 触发事件</li>
+<li><code>TitleBarColorHelper.ApplyByCurrentTheme()</code> 自动检测当前主题（通过 BgPage 颜色 R 值判断），浅色用 <code>#F3F0EA</code> + <code>#1A1B1C</code>，深色用 <code>#1E1E1E</code> + <code>#E0E0E0</code></li>
+<li><code>NoteListView</code> 和 <code>SettingsWindow</code> 订阅 <code>ThemeChanged</code> 事件实时更新</li>
+</ol>
+<h4 id="q-3">Q: 新建便签时列表重复显示</h4>
+<p><strong>现象</strong>：新建便签会在中间的展示页面生成两个相同的便签，但左侧分类数量正确。</p>
+<p><strong>解决方案</strong>：三重保护</p>
+<ol>
+<li><code>_isNoteCreating</code> 标志：新建便签期间抑制事件触发的刷新，结束后统一刷新一次</li>
+<li><code>_isReloading</code> 标志：防止 <code>ReloadNotes()</code> 递归调用</li>
+<li><code>HashSet&lt;Guid&gt;</code> 去重：同一个 <code>Note.Id</code> 只添加一次</li>
+</ol>
+<h4 id="q-4">Q: 窗口最大化最小化关闭按钮消失</h4>
+<p><strong>现象</strong>：修改窗口样式后，窗口上的最大化最小化关闭等按钮没有了。</p>
+<p><strong>解决方案</strong>：不要使用 <code>WindowChrome</code>，改用 <code>WindowStyle=&quot;SingleBorderWindow&quot;</code> + <code>DwmSetWindowAttribute</code> 改标题栏色，保留系统按钮。</p>
+<h4 id="q-ctrlc-ctrlx-v1.1.1">Q: 🔴 编辑区 Ctrl+C 只能复制一行、Ctrl+X 完全无反应（v1.1.1 已修复）</h4>
+<p><strong>现象</strong>：跨行选中 4 行文字后按 Ctrl+C，剪贴板只有<strong>最后一行</strong>；Ctrl+X 完全没反应。</p>
+<p><strong>根本原因</strong>（双层缺陷）：</p>
+<ol>
+<li><code>CommandManager</code> 在命令 <code>CanExecute == false</code> 时<strong>不派发 <code>Executed</code></strong>，
+所以 <code>PreviewExecuted</code> 拦截器永远不会被调用。而 TextBox 的 <code>Copy</code> / <code>Cut</code>
+的 <code>CanExecute</code> <strong>只认它自己的 <code>SelectionLength</code></strong> —— 跨行选区存在 <code>_anchor</code> / <code>_focus</code> 里，
+各行 TextBox 的 <code>SelectionLength</code> 全是 0，对命令系统完全不可见。</li>
+<li><code>Ctrl+C</code> 的键位映射会走到 <code>Insert</code> 键，命令路由本身也不可靠。</li>
+</ol>
+<p><strong>解决方案</strong>：把 Ctrl+C / X / A / V 改为在 <code>PreviewKeyDown</code> 里<strong>直接处理</strong>，不依赖命令路由。
+详见 <a href="#1110-%E8%B7%A8%E8%A1%8C%E9%80%89%E5%8C%BA%E7%BC%96%E8%BE%91%E5%99%A8%E6%A0%B8%E5%BF%83">§11.10</a>。</p>
+<p><strong>回归验证</strong>：拖选 4 行复制/剪切均能完整取得 4 行；Ctrl+A 全选复制内容逐字一致；
+剪切后原内容真实减少；粘贴多行正常写入；<strong>Ctrl+Z / Ctrl+Y 未受影响</strong>。</p>
+<h4 id="q-v1.1.1">Q: 🔴 在编辑区选中文字就卡死（v1.1.1 已修复）</h4>
+<p><strong>现象</strong>：光标选中文字时卡顿，整个软件跟着卡死，<strong>松开鼠标后仍不恢复</strong>。</p>
+<p><strong>根本原因</strong>：选区高亮装饰器在 <code>LayoutUpdated</code> 里<strong>无条件</strong> <code>InvalidateVisual()</code>，
+形成&quot;重绘 → 布局 → 再重绘&quot;的自激循环，UI 线程被持续占满。
+实测单线程长期跑在 <strong>100%</strong>，松手后仍有 <strong>101.3%</strong>。</p>
+<p><strong>解决方案</strong>：见 §11.10「陷阱二」，四条修复缺一不可。
+修复后松手静置降至 <strong>3.6%</strong>。</p>
+<h4 id="q-v1.1.1-1">Q: 🔴 无法选中每一段中的最后一个字（v1.1.1 已修复）</h4>
+<p><strong>现象</strong>：拖选时每段的最后一个字选不上；后续发现<strong>从后往前拖选</strong>时更明显。</p>
+<p><strong>根本原因</strong>：这是<strong>两个独立 bug</strong>：</p>
+<ol>
+<li>「行尾插入点」矩形被手工拼接成<strong>零宽</strong>，导致行尾选区长度被判定为 0</li>
+<li><code>GetCharacterIndexFromPoint</code> 在文本右侧空白处<strong>永远不返回&quot;行尾位置&quot;</strong>，
+而旧代码只在它失败时才回退到行尾</li>
+</ol>
+<p><strong>解决方案</strong>：见 §11.10「陷阱三」。
+关键是<strong>行尾插入点必须交给原生接口取</strong>，不能用末字符矩形手工拼接。</p>
+<h4 id="q-5">Q: 🔴 软件启动后便签窗口一个都不出现（数据看起来&quot;空了&quot;）</h4>
+<p><strong>现象</strong>：应用能启动，但桌面上<strong>一个便签窗口都没有</strong>，像是数据全丢了。</p>
+<p><strong>两个可能原因</strong>：</p>
+<p>① <strong>数据库时间戳格式错误</strong>（真实踩过）：<code>CreatedAt</code> / <code>UpdatedAt</code> 被写成毫秒整数
+（如 <code>1790069038632</code>），<code>DateTimeHelper.Parse</code> 抛 <code>FormatException</code>
+→ <code>GetAllNotes</code> 整体失败 → <code>RestoreNoteWindows</code> 失败。
+<strong>改回 ISO 字符串即可</strong>（如 <code>2026-09-22T17:23:58</code>）。</p>
+<p>② <strong>单实例竞争</strong>（调试时常见）：上一个进程还没退干净（<code>OnExit</code> 要写库 + 释放 Mutex），
+新实例被单实例逻辑挡掉。<strong>等进程真正退出再额外等 3 秒</strong>再启新实例。</p>
+<blockquote>
+<p>排查顺序建议：先看日志有没有 <code>FormatException</code>；再看是不是自己刚 kill 过进程。
+<strong>不要一上来就怀疑数据被删了。</strong></p>
+</blockquote>
+<h4 id="q-6">Q: 锁定便签后用户以为&quot;界面坏了&quot;</h4>
+<p><strong>现象</strong>：便签被锁定后，用户分不清是被锁了还是软件出问题。</p>
+<p><strong>解决方案</strong>：锁定态必须<strong>同时</strong>给出&quot;可读的说明 + 可退出的入口&quot;（提示条 + 解锁按钮），
+且斜纹浓度定在 <strong>7%</strong>（3% 时肉眼几乎不可见）。</p>
+<h3 id="section-103">22.3 打包发布问题</h3>
+<h4 id="q-windows-4551">Q: 便携版启动时被 Windows 拦截（错误代码 4551）</h4>
+<p><strong>现象</strong>：在其他电脑上测试时，便携版或安装包被 Windows 拦截，报错&quot;应用程序控制策略已阻止此文件&quot;，错误代码 4551。</p>
+<p><strong>原因</strong>：Windows 11 智能应用控制（Smart App Control，SAC）拦截了未签名的新软件。</p>
+<p><strong>解决方案</strong>（按推荐顺序）：</p>
+<ol>
+<li><strong>解除文件锁定</strong>：右键安装包 → 属性 → 勾选&quot;解除锁定&quot; → 应用 → 确定</li>
+<li><strong>关闭 SAC</strong>：设置 → 隐私和安全 → Windows 安全中心 → 应用和浏览器控制 → 智能应用控制设置 → 关闭（注意：关闭后不可逆）</li>
+<li><strong>使用便携版</strong>：便携版比安装包更不容易被 SAC 拦截</li>
+<li><strong>代码签名</strong>：购买代码签名证书（Certum 开源证书约 100 元 / 年），对 exe 进行数字签名</li>
+</ol>
+<h4 id="q-7">Q: 为什么没有&quot;更多信息→仍要运行&quot;选项</h4>
+<p><strong>现象</strong>：Windows 拦截提示只有&quot;正常&quot;按钮，没有&quot;更多信息→仍要运行&quot;选项。</p>
+<p><strong>原因</strong>：这是 Windows 11 智能应用控制（SAC）的拦截，不是 SmartScreen 拦截。SAC 更严格，没有&quot;仍要运行&quot;选项。</p>
+<p><strong>解决方案</strong>：见上方&quot;错误代码 4551&quot;的解决方案。</p>
+<h4 id="q-exe-dllnotfoundexception">Q: 🔴 单文件版 exe 一启动就崩（DllNotFoundException）</h4>
+<p><strong>现象</strong>：</p>
+<pre><code>Unhandled exception. System.DllNotFoundException: Dll was not found.
+   at MS.Win32.UnsafeNativeMethods.CriticalSetWindowLong(...)
+   at MS.Win32.HwndSubclass.HookWindowProc(...)
+</code></pre>
+<p><strong>原因</strong>：发布命令漏了 <strong><code>-p:IncludeNativeLibrariesForSelfExtract=true</code></strong>，
+WPF 原生库（<code>wpfgfx_cor3.dll</code> 等）没被打进单文件。
+产物体积会明显偏小（约 139 MB 而不是 149 MB）。</p>
+<p><strong>解决方案</strong>：补上该参数重新发布。</p>
+<p><strong>快速判定技巧</strong>：<strong>单文件版崩、非单文件版（<code>bin/Release/.../win-x64/Note.App.exe</code>）正常</strong>
+→ 100% 是这个参数漏了。</p>
+<h4 id="q-8">Q: 便携版没有重置便签信息，也没有欢迎便签</h4>
+<p><strong>现象</strong>：便携版启动后显示之前测试的便签数据，没有欢迎便签。</p>
+<p><strong>原因</strong>：便签数据保存在 <code>%APPDATA%\今日营业中\</code>，不是程序目录。之前测试过这个软件，所以有数据残留。</p>
+<p><strong>解决方案</strong>：删除 <code>%APPDATA%\今日营业中\</code> 目录，重新启动软件即可看到欢迎便签。</p>
+<h4 id="q-9">Q: 便携版如何彻底删除数据</h4>
+<p><strong>详细步骤</strong>（五步）：</p>
+<ol>
+<li><strong>关闭软件</strong>：右键系统托盘图标 → 退出</li>
+<li><strong>删除软件文件夹</strong>：删除便携版所在目录</li>
+<li><strong>删除用户数据</strong>：文件资源管理器地址栏输入 <code>%APPDATA%\今日营业中</code>，删除整个文件夹（注意：会删除所有便签数据，无法恢复！）</li>
+<li><strong>删除注册表自启项</strong>（如开启过开机自启）：<code>regedit</code> → <code>HKCU\Software\Microsoft\Windows\CurrentVersion\Run</code> → 删除 <code>TodayOpen</code> 键值</li>
+<li><strong>删除桌面快捷方式</strong>（如创建过）</li>
+</ol>
+<h4 id="q-inno-setup">Q: Inno Setup 编译时报错找不到中文语言文件</h4>
+<p><strong>现象</strong>：编译时报错 <code>Couldn't open include file &quot;ChineseSimplified.isl&quot;</code>。</p>
+<p><strong>原因</strong>：Inno Setup 安装时没有安装语言文件组件，Languages 目录为空。</p>
+<p><strong>解决方案</strong>：</p>
+<ol>
+<li>注释掉脚本中的中文语言行，使用默认英文界面（不影响功能）</li>
+<li>或手动下载 <code>ChineseSimplified.isl</code> 放到 <code>C:\Program Files (x86)\Inno Setup 6\Languages\</code> 目录</li>
+</ol>
+<h4 id="q-zip">Q: ZIP 中文文件名乱码</h4>
+<p><strong>现象</strong>：用 <code>Compress-Archive</code> 打包的 ZIP，在某些解压软件中中文文件名乱码。</p>
+<p><strong>解决方案</strong>：改用 Python <code>zipfile</code> 或 .NET <code>ZipFile.CreateFromDirectory</code> 并指定 UTF-8 编码，
+<strong>写入 <code>arcname</code> 时手动拼接中文名</strong>，不要用 PowerShell 的 <code>Compress-Archive</code>。</p>
+<h3 id="v1.1.1-2">22.4 验证与测试问题（v1.1.1 新增）</h3>
+<blockquote>
+<p>本节记录在真实应用上做<strong>端到端验证</strong>时踩过的坑，供后续写验证脚本时参考。</p>
+</blockquote>
+<h4 id="q-10">Q: 🔴 验证脚本误操作用户的真实便签（代价最大的一条）</h4>
+<p><strong>现象</strong>：为验证快捷键写的自动化脚本，把用户一条真实便签的内容清空了（发生过两次）。</p>
+<p><strong>根本原因</strong>：测试便签放在 <code>PositionX=1500, Y=300</code>，而用户一条真实便签在 <code>PositionX=1501, Y=265</code>
+—— <strong>屏幕位置几乎完全重合</strong>。脚本&quot;取最靠某角窗口&quot;的挑选逻辑误抓了用户的便签，
+随后的 <code>Ctrl+A</code> + <code>Ctrl+X</code> 把它清空了。</p>
+<p><strong>防范规则</strong>：</p>
+<ul>
+<li>测试便签一律放<strong>屏幕左下空旷区</strong>（如 <code>PositionX=200, PositionY=1400</code>）</li>
+<li>挑选窗口用<strong>位置匹配</strong>，不要用尺寸匹配</li>
+<li>执行任何会修改内容的操作前，<strong>先复制一份数据库</strong></li>
+<li>万一真清空了：从 <code>today_open.db.bak_*</code> 或 <code>Backup\today_open_*.db</code>
+<strong>精确写回并回读逐字节校验</strong>，不要凭记忆重写</li>
+</ul>
+<h4 id="q-11">Q: 脚本按固定像素尺寸找不到便签窗口</h4>
+<p><strong>现象</strong>：脚本按 <code>500~620</code> 的宽度范围匹配窗口，一个都匹配不到。</p>
+<p><strong>原因</strong>：本机屏幕 <strong>150% 缩放</strong>。数据库里 <code>Width=520</code>，屏幕上实际约 <strong>816</strong>；
+<code>PositionX=1500</code> 实际约 <strong>2250</strong>。<strong>按库里的数值匹配必然失败。</strong></p>
+<p><strong>解决方案</strong>：不要按像素尺寸猜，改用 Windows UI Automation 拿控件的<strong>真实屏幕矩形</strong>：</p>
+<pre><code class="language-python">import uiautomation as auto
+win = auto.ControlFromHandle(hwnd)
+# 遍历控件，取 ControlType == EditControl 的 BoundingRectangle
+</code></pre>
+<p><strong>便签窗口内的控件结构（实测）</strong>：<code>[0]</code> 是<strong>标题框</strong>（更宽更靠上，约 <code>1410×55</code>），
+<code>[1]~[4]</code> 才是<strong>正文 4 行</strong>（约 <code>1374×41</code>）。所以<strong>正文行 = <code>boxes[1:]</code></strong>。</p>
+<h4 id="q-postmessage-wpf">Q: 用 PostMessage 模拟按键在 WPF 上无效</h4>
+<p><strong>现象</strong>：脚本发消息模拟鼠标拖选，应用毫无反应。</p>
+<p><strong>原因</strong>：WPF 不认 <code>PostMessage</code> 模拟的输入。</p>
+<p><strong>解决方案</strong>：用 <strong><code>SendInput</code></strong> 发真实鼠标/键盘事件（走 Windows 输入队列），
+这是驱动 WPF 应用做端到端验证的唯一可靠方式。</p>
+<p><strong>小坑</strong>：拖选起点用 <code>ratio ≈ 0.02</code>（最左）。用 <code>0.12</code> 会点得太靠右，
+导致选区起点落在文字中间，表现为&quot;剪贴板少了首字&quot;。</p>
+<h4 id="q-subprocess.runtimeout.gui">Q: 用 <code>subprocess.run(timeout=...)</code> 验证 GUI 启动后查不到窗口</h4>
+<p><strong>现象</strong>：<code>subprocess.run(cmd, timeout=25)</code> 超时后，后续查不到进程与窗口。</p>
+<p><strong>原因</strong>：<strong>超时后子进程被 kill 了</strong>。</p>
+<p><strong>解决方案</strong>：改用 <code>subprocess.Popen</code> + <code>proc.poll()</code> 轮询。
+另外注意：<strong>对 GUI 程序，<code>TimeoutExpired</code> 本身反而是&quot;正常运行&quot;的信号</strong>（GUI 本来不退出）。</p>
+<h4 id="q-bash-python-c">Q: Bash 里内联 <code>python -c</code> 的字符串被损坏</h4>
+<p><strong>现象</strong>：<code>python -c &quot;...路径里有反斜杠或嵌套引号...&quot;</code> 报 <code>SyntaxError: unterminated string literal</code>。</p>
+<p><strong>原因</strong>：Git Bash 下嵌套引号 / 反斜杠会被转义损坏。</p>
+<p><strong>解决方案</strong>：<strong>写成独立的 <code>.py</code> 脚本文件再执行</strong>，不要内联复杂字符串。</p>
+<h3 id="ai">22.5 AI 辅助开发问题</h3>
+<h4 id="q-12">Q: 上下文太长怎么办</h4>
+<p><strong>现象</strong>：对话上下文过长，AI 响应变慢或卡住。</p>
+<p><strong>解决方案</strong>：</p>
+<ol>
+<li>每个 Phase 开始时新建对话</li>
+<li>发前置指令说明项目背景和当前状态</li>
+<li>让 AI 读取关键文件而不是把所有内容贴到对话里</li>
+<li>上下文压缩后 AI 会丢失之前读取的文件内容，需要重新读取 ——
+建议在前置指令中明确告诉 AI 需要读取哪些关键文件</li>
+</ol>
+<h4 id="q-ai">Q: AI 生成的代码编译报错怎么办</h4>
+<p><strong>解决方案</strong>：</p>
+<ol>
+<li>把完整的报错信息贴给 AI</li>
+<li>让 AI 读取报错的文件</li>
+<li>让 AI 修复后重新编译</li>
+<li>同一问题失败两次，换个思路或手动修复</li>
+</ol>
+<h4 id="q-ui">Q: 修改 UI 后怎么确认改动真的生效了</h4>
+<p><strong>不要只信&quot;0 错误&quot;。</strong> 两条硬性校验：</p>
+<ol>
+<li><strong>看产物时间戳</strong>：<code>bin/Release/.../Note.App.dll</code> 的 mtime 必须晚于最后改动的源文件</li>
+<li><strong>量化视觉参数</strong>（纹理 / 颜色类）：
+<ul>
+<li>周期性（有没有可见网格）→ 用<strong>水平自相关</strong>，看有无次级峰</li>
+<li>强度（会不会太脏）→ 用<strong>亮度极差与标准差</strong></li>
+</ul>
+</li>
+</ol>
+<p><strong>参考基线</strong>：纸纤维纹理亮度极差 <strong>6~7</strong>（量程 255）、<strong>sd ≈ 0.9</strong>，
+自相关在 <code>lag ≥ 3</code> 应平滑衰减到 0.5 以下、无次级峰。</p>
+<hr />
+<h2 id="section-104">23. 开发环境配置</h2>
+<h3 id="section-105">23.1 必需软件</h3>
+<table>
+<thead>
+<tr>
+<th>软件</th>
+<th>版本</th>
+<th>用途</th>
+<th>下载地址</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Visual Studio 2022</td>
+<td>17.x+</td>
+<td>开发 IDE（.NET 桌面开发工作负载）</td>
+<td><a href="https://visualstudio.microsoft.com/">https://visualstudio.microsoft.com/</a></td>
+</tr>
+<tr>
+<td>.NET SDK</td>
+<td>10.0</td>
+<td>开发和运行时</td>
+<td><a href="https://dotnet.microsoft.com/">https://dotnet.microsoft.com/</a></td>
+</tr>
+<tr>
+<td>Inno Setup</td>
+<td>6.x</td>
+<td>安装包制作</td>
+<td><a href="https://jrsoftware.org/isdl.php">https://jrsoftware.org/isdl.php</a></td>
+</tr>
+<tr>
+<td>Python</td>
+<td>3.12+</td>
+<td>验证脚本 / 打包</td>
+<td><a href="https://www.python.org/">https://www.python.org/</a></td>
+</tr>
+<tr>
+<td>UI Automation 库</td>
+<td>2.x</td>
+<td>验证脚本取控件真实矩形</td>
+<td><code>pip install uiautomation</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="visual-studio">23.2 Visual Studio 工作负载</h3>
+<p>安装 Visual Studio 2022 时，勾选 <strong>.NET 桌面开发</strong>工作负载，包含：</p>
+<ul>
+<li>.NET SDK</li>
+<li>WPF 模板</li>
+<li>C# 开发工具</li>
+<li>NuGet 包管理器</li>
+</ul>
+<h3 id="section-106">23.3 项目初始化命令</h3>
+<pre><code># 创建解决方案
+dotnet new sln -n Note -o D:\PJ\Note
+
+# 创建 WPF 项目
+dotnet new wpf -n Note.App -o D:\PJ\Note\src\Note.App -f net10.0-windows
+
+# 添加项目到解决方案
+dotnet sln D:\PJ\Note\Note.sln add D:\PJ\Note\src\Note.App\Note.App.csproj
+
+# 添加 NuGet 包
+cd D:\PJ\Note\src\Note.App
+dotnet add package CommunityToolkit.Mvvm --version 8.2.2
+dotnet add package Microsoft.Data.Sqlite --version 10.0.0
+dotnet add package SQLitePCLRaw.bundle_e_sqlite3 --version 2.1.13
+dotnet add package H.NotifyIcon.Wpf --version 2.0.111
+dotnet add package Microsoft.Extensions.DependencyInjection --version 10.0.0
+dotnet add package Microsoft.Extensions.Configuration --version 10.0.0
+dotnet add package Microsoft.Extensions.Configuration.Json --version 10.0.0
+dotnet add package Serilog --version 3.1.1
+dotnet add package Serilog.Sinks.File --version 5.0.0
+dotnet add package Serilog.Sinks.Debug --version 2.0.0
+</code></pre>
+<h3 id="section-107">23.4 编译命令</h3>
+<pre><code># Debug 编译
+cd D:\PJ\Note\src\Note.App
+dotnet build -c Debug
+
+# Release 构建（必须先构建，验证时间戳）
+cd D:\PJ\Note
+dotnet build src/Note.App/Note.App.csproj -c Release -r win-x64 --no-incremental
+
+# Release 发布（自包含单文件，不压缩）
+dotnet publish src/Note.App/Note.App.csproj -c Release -r win-x64 ^
+  --self-contained true -p:PublishSingleFile=true ^
+  -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=none ^
+  -o &quot;D:\PJ\Note\publish&quot;
+</code></pre>
+<blockquote>
+<p><strong>Git Bash 下</strong>：<code>-o</code> 必须用 Windows 风格路径（<code>&quot;D:\PJ\Note\publish&quot;</code>），
+用 <code>/d/PJ/Note/publish</code> 会被 MSYS 路径转换错成 <code>D:\d\PJ\Note\publish</code>。</p>
+</blockquote>
+<h3 id="section-108">23.5 卡巴斯基排除项（如使用卡巴斯基）</h3>
+<p>将以下目录加入卡巴斯基排除项：</p>
+<ul>
+<li><code>%TEMP%\ai\</code></li>
+<li><code>D:\PJ\Note\</code></li>
+<li><code>%APPDATA%\今日营业中\</code></li>
+</ul>
+<h3 id="section-109">23.6 项目路径速查</h3>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>路径</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>项目根目录</td>
+<td><code>D:\PJ\Note\</code></td>
+</tr>
+<tr>
+<td>解决方案</td>
+<td><code>D:\PJ\Note\Note.sln</code></td>
+</tr>
+<tr>
+<td>项目文件</td>
+<td><code>D:\PJ\Note\src\Note.App\Note.App.csproj</code></td>
+</tr>
+<tr>
+<td>Debug 编译输出</td>
+<td><code>D:\PJ\Note\src\Note.App\bin\Debug\net10.0-windows\Note.App.exe</code></td>
+</tr>
+<tr>
+<td>Release 发布输出</td>
+<td><code>D:\PJ\Note\publish\Note.App.exe</code></td>
+</tr>
+<tr>
+<td>便携版目录</td>
+<td><code>D:\PJ\Note\release\portable\今日营业中 v1.5.3 便携版\</code></td>
+</tr>
+<tr>
+<td>便携版 ZIP</td>
+<td><code>D:\PJ\Note\release\今日营业中_v1.5.3_便携版.zip</code></td>
+</tr>
+<tr>
+<td>安装包脚本</td>
+<td><code>D:\PJ\Note\installer\setup.iss</code>（当前发布流程<strong>只出便携版 ZIP</strong>，安装包按需再生成）</td>
+</tr>
+<tr>
+<td>数据库（运行时）</td>
+<td><code>%APPDATA%\今日营业中\today_open.db</code></td>
+</tr>
+<tr>
+<td>备份（运行时）</td>
+<td><code>%APPDATA%\今日营业中\Backup\</code></td>
+</tr>
+<tr>
+<td>日志（运行时）</td>
+<td><code>%APPDATA%\今日营业中\Logs\</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="v1.1.0">24. v1.1.0 维护阶段更新说明</h2>
+<blockquote>
+<p>本章节记录 Phase 7 打包发布后的维护阶段更新内容，包括功能补充、界面优化和 Bug 修复。</p>
+</blockquote>
+<h3 id="section-110">24.1 新增功能</h3>
+<h4 id="section-111">24.1.1 待办事项功能</h4>
+<ul>
+<li><strong>实现方式</strong>：轻量 Markdown 语法（<code>- [ ]</code> / <code>- [x]</code>），不改数据库结构</li>
+<li><strong>核心类</strong>：
+<ul>
+<li><code>NoteLineViewModel</code>：行 ViewModel，支持 Normal/Todo 类型，Parse/ToPlainText 方法</li>
+<li><code>INoteLineParent</code>：行父 ViewModel 接口</li>
+</ul>
+</li>
+<li><strong>渲染方式</strong>：ItemsControl 按行渲染，支持复选框切换、完成删除线</li>
+<li><strong>适用范围</strong>：独立便签窗口（NoteWindow）和主页编辑区（NoteListView）</li>
+<li><strong>操作方式</strong>：选中文字后点击待办按钮，或手动输入 <code>- [ ]</code> 语法</li>
+</ul>
+<h4 id="section-112">24.1.2 标签系统</h4>
+<ul>
+<li><strong>功能描述</strong>：自定义标签分类，便签可添加多个标签</li>
+<li><strong>标签管理</strong>：新建标签、编辑标签、删除标签、标签颜色</li>
+<li><strong>便签标签</strong>：便签可添加/移除多个标签，按标签筛选便签</li>
+<li><strong>主页显示</strong>：左侧分类导航显示标签列表，便签列表项显示标签徽标</li>
+</ul>
+<h4 id="section-113">24.1.3 主页编辑区</h4>
+<ul>
+<li><strong>功能描述</strong>：在主页右侧直接编辑便签内容，无需打开独立便签窗口</li>
+<li><strong>编辑内容</strong>：标题、内容、标签、颜色、置顶、锁定、归档</li>
+<li><strong>双向同步</strong>：主页编辑区与独立便签窗口内容实时双向同步</li>
+<li><strong>待办事项</strong>：支持按行渲染，复选框切换</li>
+</ul>
+<h3 id="section-114">24.2 界面优化</h3>
+<h4 id="section-115">24.2.1 单栏标题栏</h4>
+<ul>
+<li><strong>优化前</strong>：两栏标题（系统标题栏 + 列表标题栏）</li>
+<li><strong>优化后</strong>：单栏标题（40px），整合所有功能</li>
+<li><strong>布局结构</strong>：
+<ul>
+<li>左侧：应用图标 + &quot;今日营业中&quot; + 当前分类名 + 数量</li>
+<li>右侧：搜索框 + 排序按钮 + 新建便签按钮</li>
+<li>最右侧：最小化 + 最大化 + 关闭按钮</li>
+</ul>
+</li>
+<li><strong>技术实现</strong>：
+<ul>
+<li><code>WindowStyle=&quot;None&quot;</code> 移除系统标题栏</li>
+<li><code>WindowChrome</code> 实现窗口拖动和调整大小</li>
+<li>自定义系统按钮（最小化/最大化/关闭）</li>
+<li><code>WindowChrome.IsHitTestVisibleInChrome=&quot;True&quot;</code> 让按钮可点击</li>
+</ul>
+</li>
+</ul>
+<h4 id="section-116">24.2.2 应用图标</h4>
+<ul>
+<li><strong>图标样式</strong>：便签形状（橙色圆角矩形 + 白色横线）</li>
+<li><strong>颜色</strong>：BrandPrimary（#E8743B）</li>
+<li><strong>尺寸</strong>：包含 256x256、128x128、64x64、48x48、32x32、16x16</li>
+<li><strong>应用范围</strong>：窗口标题栏、系统托盘、任务栏、安装包</li>
+<li><strong>生成方式</strong>：C# 代码动态生成（System.Drawing + 手动构造 ICO 格式）</li>
+</ul>
+<h4 id="section-117">24.2.3 左栏简化</h4>
+<ul>
+<li><strong>优化前</strong>：搜索框 + 新建便签按钮 + 分类导航 + 设置按钮</li>
+<li><strong>优化后</strong>：分类导航 + 设置按钮（搜索和新建移到顶部标题栏）</li>
+<li><strong>效果</strong>：左栏更简洁，分类导航空间更充裕</li>
+</ul>
+<h3 id="section-118">24.3 默认设置调整</h3>
+<table>
+<thead>
+<tr>
+<th>设置项</th>
+<th>原默认值</th>
+<th>新默认值</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>主题</td>
+<td>跟随系统（system）</td>
+<td>浅色（light）</td>
+<td>新用户默认使用浅色主题</td>
+</tr>
+<tr>
+<td>字体</td>
+<td>系统默认（system）</td>
+<td>霞鹜文楷（handwriting）</td>
+<td>新用户默认使用手写字体</td>
+</tr>
+<tr>
+<td>字体大小</td>
+<td>12.5pt</td>
+<td>16.5pt</td>
+<td>新用户默认使用更大字号</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>注意</strong>：默认值调整只影响首次安装的新用户，已有用户需在设置中手动切换。</p>
+</blockquote>
+<h3 id="bug">24.4 Bug 修复记录</h3>
+<h4 id="section-119">24.4.1 光标丢失问题</h4>
+<ul>
+<li><strong>问题描述</strong>：主页编辑区输入内容后，光标自动跳到最前面或丢失</li>
+<li><strong>根本原因</strong>：
+<ol>
+<li>自动保存触发 <code>NoteUpdated</code> 事件 → <code>NoteListViewModel.OnNoteChanged</code> 调用 <code>ReloadNotes()</code> → <code>Notes.Clear()</code> 导致 <code>SelectedNote</code> 被临时设为 null → 编辑区被清空、焦点丢失</li>
+<li>独立便签窗口的自动保存触发 <code>UpdateNote()</code> → 主页编辑区 <code>OnNoteUpdated</code> 被调用 → 内容略有不同 → 调用 <code>RebuildLinesFromContent()</code> → <code>Lines</code> 集合被重建 → TextBox 被重新创建 → 光标丢失</li>
+</ol>
+</li>
+<li><strong>修复方案</strong>：
+<ol>
+<li><code>OnSelectedNoteChanged</code> 中添加 <code>_isReloading</code> 检查，列表刷新期间不处理选中变化</li>
+<li><code>OnNoteUpdated</code> 中添加 <code>_isDirty</code> 检查，用户正在编辑时不更新 <code>EditableContent</code> 和 <code>Lines</code></li>
+<li>添加 <code>_isRebuildingLines</code> 标志，防止重建行集合时触发无限循环</li>
+</ol>
+</li>
+</ul>
+<h4 id="section-120">24.4.2 内容不同步问题</h4>
+<ul>
+<li><strong>问题描述</strong>：主页编辑区和独立便签窗口内容不同步</li>
+<li><strong>根本原因</strong>：两个 ViewModel 的 <code>OnNoteUpdated</code> 方法都只同步了状态（置顶、锁定等），没有同步内容</li>
+<li><strong>修复方案</strong>：
+<ol>
+<li><code>NoteWindowViewModel.OnNoteUpdated</code>：内容不同且不是本窗口自己保存时，同步 <code>Note.Content</code> 和 <code>Content</code></li>
+<li><code>NotePreviewViewModel.OnNoteUpdated</code>：内容不同且不是本编辑区自己保存时，同步 <code>EditableTitle</code> 和 <code>EditableContent</code></li>
+<li>两个地方都使用 <code>_isSaving</code> 标志，避免本窗口/编辑区自己保存时同步内容</li>
+</ol>
+</li>
+</ul>
+<h4 id="backspace">24.4.3 Backspace 合并行问题</h4>
+<ul>
+<li><strong>问题描述</strong>：独立便签页面内容编辑时，按 Backspace 无法回到上一行</li>
+<li><strong>根本原因</strong>：行 TextBox 的键盘事件使用 <code>KeyDown</code>（冒泡事件），被 TextBox 内部处理后才触发，无法拦截</li>
+<li><strong>修复方案</strong>：将行 TextBox 的键盘事件从 <code>KeyDown</code> 改为 <code>PreviewKeyDown</code>（隧道事件），确保在 TextBox 内部处理之前拦截 Backspace 键</li>
+</ul>
+<h4 id="section-121">24.4.4 其他修复</h4>
+<ul>
+<li>独立便签页面标题输入后光标跳走问题修复</li>
+<li>独立便签页面内容闪烁问题修复</li>
+<li>深色模式下标题栏显示异常问题修复</li>
+<li>便签最小化后位置异常问题修复</li>
+<li>新建便签重复显示问题修复</li>
+<li>便签折叠后标题可编辑</li>
+<li>新建便签在主页右侧打开，不弹窗</li>
+</ul>
+<h3 id="section-122">24.5 维护阶段技术要点</h3>
+<h4 id="section-123">24.5.1 内容保存与同步机制</h4>
+<pre><code>用户输入 → NotifyLineContentChanged → _isDirty=true → 启动自动保存定时器（500ms）
+    ↓
+自动保存触发 → SaveContent() → _isSaving=true → NoteService.UpdateNote()
+    ↓
+NoteUpdated 事件触发
+    ├→ NoteListViewModel.OnNoteChanged → ReloadNotes()（_isReloading=true）
+    ├→ NoteWindowViewModel.OnNoteUpdated（_isSaving=true 时跳过内容同步）
+    └→ NotePreviewViewModel.OnNoteUpdated（_isSaving=true 或 _isDirty=true 时跳过内容同步）
+</code></pre>
+<h4 id="section-124">24.5.2 行渲染机制</h4>
+<ul>
+<li><code>NoteLineViewModel</code>：每行一个 ViewModel，支持 Normal/Todo 类型</li>
+<li><code>Lines</code> 集合：ObservableCollection，UI 自动响应变化</li>
+<li><code>RebuildLinesFromContent()</code>：从纯文本分割行，重建 Lines 集合</li>
+<li><code>NotifyLineContentChanged()</code>：行内容变化时通知父 ViewModel，更新 EditableContent</li>
+<li><code>_isUpdatingFromLines</code>：防止行内容变化时触发 EditableContent 变化，再触发行重建，导致无限循环</li>
+</ul>
+<h4 id="windowchrome">24.5.3 WindowChrome 自定义标题栏</h4>
+<ul>
+<li><code>WindowStyle=&quot;None&quot;</code>：移除系统标题栏</li>
+<li><code>WindowChrome.CaptionHeight=&quot;40&quot;</code>：标题栏高度，用于拖动窗口</li>
+<li><code>WindowChrome.ResizeBorderThickness=&quot;6&quot;</code>：窗口边缘调整大小区域</li>
+<li><code>WindowChrome.IsHitTestVisibleInChrome=&quot;True&quot;</code>：让按钮在标题栏区域可点击</li>
+<li>自定义系统按钮：最小化、最大化/还原、关闭</li>
+</ul>
+<hr />
+<h2 id="v1.1.1-3">25. v1.1.1 维护阶段更新说明</h2>
+<blockquote>
+<p>本章节记录 v1.1.0 发布后的一轮集中优化，主题是<strong>交互正确性、性能与视觉质感</strong>。
+本轮改动集中在编辑区（<code>NoteLineEditor.cs</code>）、便签配色与纸张质感。</p>
+</blockquote>
+<h3 id="section-125">25.1 本轮改动的总体思路</h3>
+<p>v1.1.0 上线后用户反馈了三类问题，本轮按这个顺序处理：</p>
+<table>
+<thead>
+<tr>
+<th>优先级</th>
+<th>问题</th>
+<th>性质</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>最高</td>
+<td>编辑区选中文字时卡死</td>
+<td><strong>可用性阻塞</strong>（比崩溃更糟，因为它不报错）</td>
+</tr>
+<tr>
+<td>最高</td>
+<td>每段最后一个字选不上 / 从后往前拖选漏字</td>
+<td><strong>功能失效</strong></td>
+</tr>
+<tr>
+<td>最高</td>
+<td>Ctrl+C 只能复制一行、Ctrl+X 无反应</td>
+<td><strong>功能失效</strong></td>
+</tr>
+<tr>
+<td>中</td>
+<td>视觉质感偏&quot;塑料卡片&quot;、徽标脱离色系</td>
+<td>体验</td>
+</tr>
+<tr>
+<td>低</td>
+<td>色板只有 6 色，选择太少</td>
+<td>体验</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>一个方法论上的提醒</strong>：这三个&quot;最高&quot;优先级的问题里，<strong>有两个是上一轮&quot;性能优化&quot;引入的回归</strong>。
+缓存能带来性能，但会让&quot;看起来等价&quot;的代码产生不同的行为 ——
+<strong>做缓存优化时，必须同时把这部分的边界情况回归一遍</strong>。</p>
+</blockquote>
+<h3 id="section-126">25.2 交互与性能修复（重点）</h3>
+<h4 id="section-127">25.2.1 编辑区选中文字卡死</h4>
+<p><strong>症状</strong>：在内容编辑区拖选文字时卡顿，整个软件跟着无响应，<strong>松开鼠标后仍不恢复</strong>。</p>
+<p><strong>根因</strong>：选区高亮装饰器 <code>SelectionAdorner</code> 在 <code>LayoutUpdated</code> 里<strong>无条件</strong>调用
+<code>InvalidateVisual()</code>。<code>LayoutUpdated</code> 每个布局周期（含纯渲染周期）都会触发，
+而 <code>InvalidateVisual()</code> 会再次引发布局 → 形成 <strong>&quot;重绘 → 布局 → 再重绘&quot; 的自激循环</strong>；
+且 <code>OnRender</code> 内还在做 <code>GetRectFromCharacterIndex</code> 逐字符几何计算，进一步放大开销。</p>
+<p><strong>实测（受控 A/B，中位数，UI 线程占用）</strong>：</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>空闲</th>
+<th>拖选</th>
+<th>松手后静置</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>修复前</td>
+<td>3.9%</td>
+<td>133.9%</td>
+<td><strong>101.3%</strong></td>
+</tr>
+<tr>
+<td>修复后</td>
+<td>4.3%</td>
+<td>52%</td>
+<td><strong>3.6%</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>修复要点（4 条，缺一不可）</strong>：</p>
+<ol>
+<li><code>SetRanges</code> 里<strong>预先算好矩形</strong>存入 <code>_cachedRects</code>，<code>OnRender</code> 只做 <code>DrawRectangle</code></li>
+<li>逐字符矩形按 <code>TextBox</code> 缓存（<code>SelectionGeometryCache._charRects</code>），
+失效键为 <code>TextLength / FontSize / ActualWidth</code></li>
+<li><strong>无选区时完全不触碰装饰器</strong>（<code>SetRanges(null)</code> 会强制 <code>InvalidateVisual</code>）</li>
+<li>加入<strong>端点指纹</strong>（<code>SameRanges</code>），选区端点未变时直接复用 <code>_rects</code>，
+拖动只重算受影响的少数几行</li>
+</ol>
+<p>详见 <a href="#1110-%E8%B7%A8%E8%A1%8C%E9%80%89%E5%8C%BA%E7%BC%96%E8%BE%91%E5%99%A8%E6%A0%B8%E5%BF%83">§11.10</a>。</p>
+<h4 id="section-128">25.2.2 无法选中每一段中的最后一个字</h4>
+<p><strong>症状</strong>：拖选时每段最后一个字选不上；进一步测试发现<strong>从后往前拖选</strong>时更明显。</p>
+<p><strong>根因</strong>：这是<strong>两个独立 bug</strong>（都是缓存优化引入的回归）：</p>
+<ol>
+<li><strong>行尾插入点矩形被手工拼接成零宽</strong>：为做缓存，把行尾插入点改成&quot;末字符右移&quot;手工拼接，
+拼出来的矩形宽度为 0，导致选区终点落在行尾时算不出可见高亮，选区长度被判定为 0。</li>
+<li><strong>系统接口在文本右侧空白处永不返回&quot;行尾位置&quot;</strong>：
+<code>GetCharacterIndexFromPoint</code> 在文本右侧空白处最多给出最后一个字的索引，
+而旧代码只在它失败时才回退到行尾。于是从前往后拖选时（光标落到下一行行首、行尾由整行补全）
+<strong>看不出问题</strong>，从后往前拖选时上一行末端永远取不到&quot;行尾位置&quot; → 始终漏选。</li>
+</ol>
+<p><strong>修复</strong>：</p>
+<ul>
+<li>行尾插入点<strong>改回由原生接口取</strong>（<code>box.GetRectFromCharacterIndex(len)</code>），
+取不到时才用 <code>MeasureSpaceWidth</code> 测出的字宽兜底，保证高度非零</li>
+<li>先取&quot;行尾插入点&quot;的<strong>实际坐标</strong>，指针越过该点即判定为行尾，
+<strong>不再依赖系统接口的返回值</strong></li>
+</ul>
+<p>详见 <a href="#1110-%E8%B7%A8%E8%A1%8C%E9%80%89%E5%8C%BA%E7%BC%96%E8%BE%91%E5%99%A8%E6%A0%B8%E5%BF%83">§11.10</a>。两项修复后「每段最后一个字」与
+「从后往前拖选」均能正确选入。</p>
+<h4 id="ctrlx-ctrlc">25.2.3 Ctrl+X 无法剪切、Ctrl+C 只复制一行</h4>
+<p><strong>症状</strong>：跨行选中 4 行后按 Ctrl+C，剪贴板只有最后一行；Ctrl+X 完全无反应。</p>
+<p><strong>根因（双层缺陷）</strong>：</p>
+<ol>
+<li><code>CommandManager</code> 在命令 <code>CanExecute == false</code> 时<strong>不派发 <code>Executed</code></strong>，
+所以 <code>PreviewExecuted</code> 拦截器永远不会被调用。而 TextBox 的 <code>Copy</code> / <code>Cut</code>
+的 <code>CanExecute</code> <strong>只认它自己的 <code>SelectionLength</code></strong> ——
+跨行选区存在 <code>_anchor</code> / <code>_focus</code> 里，各行 TextBox 的 <code>SelectionLength</code> 全是 0，
+对命令系统<strong>完全不可见</strong> → 命令被判定为&quot;不可执行&quot; → 按键无反应。</li>
+<li><code>Ctrl+C</code> 的键位映射会走到 <code>Insert</code> 键（Ctrl+Insert 是 Copy 的另一条键路），
+命令路由本身也不可靠。</li>
+</ol>
+<p><strong>修复</strong>：把 Ctrl+C / X / A / V 从&quot;命令路由&quot;改为在 <code>PreviewKeyDown</code> 里<strong>直接处理</strong>；
+<code>PreviewExecuted</code> 仅保留 Paste / SelectAll / Delete（及兼容右键菜单的 Copy/Cut 分支）作为兜底。</p>
+<p><strong>端到端验证（10 项断言全通过）</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>用例</th>
+<th>内容</th>
+<th>结果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>F1</td>
+<td>单行内拖选 → Ctrl+C</td>
+<td>PASS</td>
+</tr>
+<tr>
+<td>F2</td>
+<td>拖选 3 行 → Ctrl+C，剪贴板 3 行齐全</td>
+<td>PASS</td>
+</tr>
+<tr>
+<td>F3</td>
+<td>拖选 4 行 → Ctrl+X，剪贴板齐全 <strong>且源行减少</strong></td>
+<td>PASS</td>
+</tr>
+<tr>
+<td>F4</td>
+<td>Ctrl+A → Ctrl+C，全部行在剪贴板</td>
+<td>PASS</td>
+</tr>
+<tr>
+<td>F5</td>
+<td>Ctrl+A → Ctrl+X → Ctrl+Z 撤销 → Ctrl+Y 重做</td>
+<td>PASS</td>
+</tr>
+</tbody>
+</table>
+<p>并验证待办行整行选中时前缀正确带出：<code>- [x] 已完成事项</code> / <code>- [ ] 未完成事项</code>；
+<strong>Ctrl+Z / Ctrl+Y 未受影响</strong>。</p>
+<h4 id="section-129">25.2.4 验证方法说明</h4>
+<p>本轮所有交互修复都是<strong>在真实应用上做端到端验证</strong>，而非靠代码推断：</p>
+<ul>
+<li>用 <strong><code>SendInput</code></strong> 发真实鼠标拖选与键盘按键（走 Windows 输入队列）</li>
+<li>用 <strong>UI Automation</strong> 取控件的<strong>真实屏幕矩形</strong>（解决 DPI 缩放导致的坐标错位）</li>
+<li>每轮验证都核对<strong>用户真实数据零改动</strong></li>
+</ul>
+<p>过程中踩到的验证陷阱（DPI 缩放、单实例竞争、测试便签位置必须避让用户便签等）
+已系统记录在 <a href="#224-%E9%AA%8C%E8%AF%81%E4%B8%8E%E6%B5%8B%E8%AF%95%E9%97%AE%E9%A2%98v111-%E6%96%B0%E5%A2%9E">§22.4</a>。</p>
+<h3 id="section-130">25.3 界面美化</h3>
+<blockquote>
+<p>本轮的视觉改动遵循 <a href="#2-%E8%AE%BE%E8%AE%A1%E5%8E%9F%E5%88%99">§2</a> 的「<strong>色彩自洽</strong>」原则 ——
+<strong>凡长在便签上的元素，颜色都应当能从这张便签自己身上找到出处。</strong></p>
+</blockquote>
+<h4 id="section-131">25.3.1 待办复选框改为自绘样式</h4>
+<ul>
+<li><strong>优化前</strong>：系统默认 CheckBox —— 灰色方框、方形（与 4px 圆角体系不符）、点击区域过小</li>
+<li><strong>优化后</strong>：<code>TodoCheckBoxStyle</code> 自绘，14×14、<strong>4px 圆角</strong>、描边 <code>1.3px</code>
+<ul>
+<li><strong>描边与填充自动取所属便签的 <code>NoteForeground</code></strong>，因此 12 种配色下都能自然融合</li>
+<li>未完成态：透明底 + 同色描边；完成态：实心填充 + 白色对勾</li>
+<li>悬停（未完成）：底色 <code>#14000000</code> 给出可点提示</li>
+<li>命中区域向外扩 <strong>4px</strong>（外层 <code>Grid Margin=&quot;-4&quot;</code>），解决 14px 太小不好点的问题</li>
+</ul>
+</li>
+</ul>
+<h4 id="section-132">25.3.2 完成态改为「只淡文字 + 删除线」</h4>
+<ul>
+<li><strong>优化前</strong>：完成态把整行都调淡，复选框也跟着淡 → 用户难以区分&quot;已完成&quot;和&quot;未完成&quot;</li>
+<li><strong>优化后</strong>：<strong>只让文字变淡 + 加删除线</strong>，复选框保持清晰</li>
+</ul>
+<h4 id="section-133">25.3.3 正文行高由 ~1.35 提到 1.5</h4>
+<ul>
+<li><strong>效果</strong>：多行正文呼吸感更好，长文本阅读不挤</li>
+<li><strong>实现</strong>：<code>NoteLineHeight =&gt; Math.Round(NoteFontSize * 1.5, 2)</code>，
+便签窗口与主页编辑区共用同一份计算，避免同一张便签在两处显示时行距不一致</li>
+</ul>
+<blockquote>
+<p>⚠️ <strong>两个实现陷阱</strong>：
+① <code>LineHeight</code> 是 <code>TextBlock</code> 的属性，<strong><code>TextBox</code> 没有</strong> ——
+必须写成附加属性 <code>TextBlock.LineHeight</code>，并设 <code>TextBlock.LineStackingStrategy=&quot;BlockLineHeight&quot;</code> 才能生效。
+② XML 注释<strong>不能插在标签的属性列表中间</strong>（会编译报错）。</p>
+</blockquote>
+<h4 id="section-134">25.3.4 色板由 6 色扩展到 12 色</h4>
+<ul>
+<li><strong>优化前</strong>：6 色（米黄 / 薄荷绿 / 雾霾蓝 / 豆沙粉 / 薰衣紫 / 高级灰）</li>
+<li><strong>优化后</strong>：<strong>6 色相 × 深浅两档 = 12 色</strong>，深浅用于表达&quot;轻重&quot;——同色相下浅档更退让
+（适合背景 / 次要便签），深档更有存在感（适合需要被注意的便签）</li>
+<li><strong>命名</strong>：<code>色相名 + Deep/Light</code>（如 <code>YellowDeep</code> / <code>YellowLight</code>）</li>
+<li><strong>实现要点</strong>：
+<ul>
+<li>每个色相必须齐备 <strong>5 个资源键</strong>（<code>Bg</code> / <code>Title</code> / <code>Border</code> / <code>Text</code> / <code>Shadow</code>），共 60 个</li>
+<li><strong>深档沿用原 6 色的色值</strong>，所以<strong>视觉上老用户无感</strong>，纯增量</li>
+<li>色板列表集中在 <code>NoteColorHelper.All</code> 一处维护</li>
+<li><strong>读取必须走 <code>NoteColorHelper.Parse()</code></strong>（内含旧名映射 <code>Yellow → YellowDeep</code> 等 + 兜底默认），
+<strong>不要</strong>直接 <code>Enum.Parse&lt;NoteColor&gt;</code></li>
+</ul>
+</li>
+</ul>
+<h4 id="section-135">25.3.5 阴影由纯黑改为跟随便签色相</h4>
+<ul>
+<li><strong>优化前</strong>：纯黑阴影，压在彩色纸上会让边缘<strong>发脏灰</strong></li>
+<li><strong>优化后</strong>：<code>Note{色相}{档位}_Shadow</code> 暖色阴影，让便签&quot;落&quot;在桌面上而不是&quot;贴&quot;在上面</li>
+</ul>
+<h4 id="section-136">25.3.6 折叠态加颜色信息</h4>
+<ul>
+<li><strong>问题</strong>：折叠成胶囊后底色被标题栏色取代，<strong>便签&quot;是什么颜色&quot;的信息会丢失</strong></li>
+<li><strong>方案</strong>：左侧加一道 <strong>3px 语义色脊</strong>（<code>NoteAccentBrush</code> = <code>Border</code> 色），
+既守住颜色身份，又像&quot;书脊&quot;一样暗示&quot;这是一张便签&quot;</li>
+<li><strong>细节</strong>：用 <code>Border</code> 色而不是 <code>Bg</code> 色 —— 折叠胶囊底色已经是标题栏色，
+若色脊再用 <code>Bg</code> 色会出现色差、显得脏；展开态不需要（那时四周都有便签底色），故仅折叠时可见</li>
+</ul>
+<h4 id="section-137">25.3.7 锁定态设计化</h4>
+<ul>
+<li><strong>优化前</strong>：锁定后用户分不清&quot;被锁住了&quot;和&quot;界面坏了&quot;</li>
+<li><strong>优化后</strong>：斜纹浓度定在 <strong>7%</strong>（3% 时肉眼几乎不可见），并<strong>同时</strong>给出
+「可读的说明 + 可退出的入口」（提示条 + 解锁按钮）</li>
+</ul>
+<h4 id="section-138">25.3.8 便签纸张质感（本轮最大的视觉改动）</h4>
+<p><strong>问题</strong>：便签是纯色块，视觉上接近&quot;塑料卡片&quot;，和&quot;信件 / 便条纸&quot;的产品意象有距离。</p>
+<p><strong>方案</strong>：在便签底层叠<strong>三层纯绘制的质感</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>画刷</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>PaperFiberBrush</code></td>
+<td>极淡的纸纤维颗粒（不规则短划线平铺）</td>
+</tr>
+<tr>
+<td><code>PaperLightBrush</code></td>
+<td>顶部光照渐变（模拟光源在上方）</td>
+</tr>
+<tr>
+<td>纸边厚度渐变</td>
+<td>纸边厚度感</td>
+</tr>
+</tbody>
+</table>
+<p>三层全部是<strong>半透明叠加</strong>，因此能跟 12 种便签底色<strong>自然融合</strong>，不需要为每种颜色各配一套纹理。</p>
+<p><strong>工艺上刻意避开了系统材质（Mica / Acrylic）</strong>：便签窗口用了透明分层窗口，
+与系统窗口背景材质<strong>在实现上互斥</strong>，且系统材质在 <strong>Windows 10 上不可用</strong>。
+纯绘制方案在 Win10 / Win11 表现一致，也没有窗口样式兼容风险。</p>
+<p><strong>⚠️ 本轮最大的技术教训：小尺寸 tile 会产生可见网格。</strong></p>
+<p>早先试过 6×6 的 tile，<strong>肉眼能看到规则网格，像&quot;布纹 / 网纱&quot;而不是纸</strong>。
+改为 <strong>24×24 tile + 短划线全部偏离网格交点 + 三档浓度（<code>#08</code> / <code>#0A</code> / <code>#0C</code>）互相错开</strong> 后解决。</p>
+<p>量化定位过程（水平自相关测周期性）：</p>
+<pre><code>6×6 tile   → 自相关在 lag=18（即 6 的整数倍）出现 0.98 的强峰
+24×24 tile → 自相关峰值 lag=2 → 0.81，之后平滑衰减，无次级峰
+</code></pre>
+<p><strong>结论：纹理类视觉参数不要靠肉眼判断。</strong> 用<strong>自相关函数</strong>测周期性（有无次级峰），
+用<strong>亮度标准差</strong>测强度（会不会太脏），一次就能定位。</p>
+<p><strong>强度基线</strong>：亮度极差 <strong>6~7</strong>（量程 255）、<strong>sd ≈ 0.9</strong> ——
+正常距离下只表现为&quot;纸面不光滑&quot;，<strong>看清了就说明做脏了</strong>。</p>
+<p>纤维只画 <strong>1.5% 左右的黑</strong>，密度刻意做得很低。</p>
+<h3 id="section-139">25.4 兼容性说明</h3>
+<p><strong>色板扩展改了颜色枚举的命名</strong>（如 <code>Yellow</code> → <code>YellowDeep</code>），
+程序读取历史数据时做了<strong>新旧名映射</strong>，已存在的便签与标签颜色均能正常显示，
+<strong>无需手动处理，数据不会被改写</strong>。</p>
+<blockquote>
+<p>已实测验证：用户库中同时存在旧名（<code>yellow</code> / <code>blue</code>）与新名
+（<code>yellowdeep</code> / <code>purplelight</code>）的记录，<strong>旧名映射工作正常</strong>。</p>
+</blockquote>
+<h3 id="v1.1.1-4">25.5 发布与验证状态（v1.1.1）</h3>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>结果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>构建</td>
+<td><code>dotnet build -c Release -r win-x64 --no-incremental</code> → <strong>0 错误</strong></td>
+</tr>
+<tr>
+<td>发布产物</td>
+<td><code>publish/Note.App.exe</code> = <strong>149,180,944 bytes</strong>（与基线一致）</td>
+</tr>
+<tr>
+<td>便携版三副本</td>
+<td>sha256 <strong>完全一致</strong>（<code>5abd07680629ad2c…</code>）</td>
+</tr>
+<tr>
+<td>ZIP</td>
+<td><strong>66,215,826 bytes</strong>，CRC PASS、4 条目、UTF-8 全通过</td>
+</tr>
+<tr>
+<td>实跑验证</td>
+<td>进程持续 ≥20 秒 + <strong>7 个便签窗口全部渲染</strong></td>
+</tr>
+<tr>
+<td>交互回归</td>
+<td><code>final_verify.py</code> <strong>PASS 10/10</strong>（F1~F5）</td>
+</tr>
+<tr>
+<td>冒烟测试</td>
+<td>PASS（21 个窗口全部可响应，<code>WM_NULL</code> 响应 0.01~0.11ms）</td>
+</tr>
+<tr>
+<td>便携版只读验证</td>
+<td>三副本哈希一致、exe 内含修复标记、启动正常、<strong>数据零改动</strong></td>
+</tr>
+<tr>
+<td>用户数据</td>
+<td><strong>零改动</strong>（12 条便签，颜色新旧名混合，锁定数 0）</td>
+</tr>
+<tr>
+<td>更新日志</td>
+<td>新增「快捷键修复（重点）」+「性能修复（重点）」章节 → 9,493 bytes</td>
+</tr>
+</tbody>
+</table>
+<h3 id="section-140">25.6 本轮新增的开发约束（供后续开发遵守）</h3>
+<table>
+<thead>
+<tr>
+<th>约束</th>
+<th>原因</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>编辑区 Ctrl+C/X/A/V <strong>只在 <code>PreviewKeyDown</code> 里处理</strong>，不要改回命令路由</td>
+<td>命令路由在 <code>CanExecute == false</code> 时不派发（§11.10 陷阱一）</td>
+</tr>
+<tr>
+<td>行尾插入点矩形<strong>必须由原生接口取</strong>，不可用末字符矩形手工拼接</td>
+<td>手工拼接会产生零宽矩形，导致行尾选不上（§11.10 陷阱三）</td>
+</tr>
+<tr>
+<td>改动编辑区拦截器后<strong>必须回归 Ctrl+Z / Ctrl+Y</strong></td>
+<td>新的 <code>e.Handled = true</code> 可能吃掉撤销重做</td>
+</tr>
+<tr>
+<td>便签相关的颜色<strong>一律从便签自身色板取值</strong>，不引入品牌色或纯黑</td>
+<td>「色彩自洽」原则（§2）</td>
+</tr>
+<tr>
+<td><strong>数据库时间戳必须写 ISO 字符串</strong></td>
+<td>写成毫秒整数会导致所有便签窗口恢复不出来（§8.1）</td>
+</tr>
+<tr>
+<td>验证脚本的测试便签<strong>必须避开用户真实便签的位置</strong></td>
+<td>曾两次误清空用户数据（§22.4）</td>
+</tr>
+<tr>
+<td>改动 XAML 后<strong>必须核对产物时间戳</strong>，不要只信&quot;0 错误&quot;</td>
+<td><code>-r</code> 与不带 <code>-r</code> 走不同 obj 子目录，增量构建会假成功（§22.1）</td>
+</tr>
+<tr>
+<td>验证 GUI 应用<strong>必须用 <code>SendInput</code></strong>，不要用 <code>PostMessage</code></td>
+<td>WPF 不认模拟消息（§22.4）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="section-141">25.7 仍待处理</h3>
+<blockquote>
+<p>✅ <strong>本节遗留项已在后续版本完成（截至 v1.5.3 无遗留）</strong>：
+折叠态待办徽标已按「色彩自洽」原则重构——徽标改为<strong>勾选框小图标</strong>并取便签自身描边色
+<code>NoteForeground</code> 着色，纯数字「3」语义不明与间距层级问题一并解决
+（见 <code>NoteWindow.xaml</code> 折叠徽标区域的注释）。</p>
+</blockquote>
+<hr />
+<h2 id="v1.2.0-v1.5.3">26. v1.2.0 ~ v1.5.3 维护阶段更新说明</h2>
+<blockquote>
+<p>本章节记录 v1.1.1 发布后至 v1.5.3 的六轮维护更新，按版本分节。
+与 §24 / §25 的模式一致：每个版本先讲清<strong>为什么做</strong>，再讲<strong>怎么做、踩了什么坑</strong>。
+各版本的口语化描述见便携版 <code>更新日志.txt</code>，本章是它的技术化对照。</p>
+</blockquote>
+<h3 id="v1.2.02026-09-25">26.1 v1.2.0（2026-09-25）：导入、筛选与搜索高亮</h3>
+<h4 id="section-142">新增功能</h4>
+<ul>
+<li><strong>导入 JSON</strong>：<code>ImportService</code> 支持把「导出为 JSON」生成的文件原样导回，已存在的便签自动跳过（按 Id 判重），不覆盖现有内容。</li>
+<li><strong>导入 Markdown / 文本</strong>：支持一次多选，每个文件生成一张便签；正文里的待办写法（<code>- [ ]</code>）保留；文件首行若为 <code># 标题</code> 则作便签标题，否则用文件名。<code>NoteImportSanitizer</code> 负责导入内容清洗。</li>
+<li><strong>导入坐标策略</strong>：导入的便签<strong>自动摆在屏幕内</strong>，不照搬文件里记录的老坐标——一张落在屏幕外的便签「看不见也拖不回来」，表象与导入失败一模一样，极难排查。导入是原子操作，中途出错不留「导了一半」状态，碰到的问题如实列出。</li>
+<li><strong>筛选</strong>：<code>FilterOption</code> 支持按颜色 / 标签 / 时间范围组合筛选；筛选按钮在搜索框右侧，<strong>有筛选生效时亮一个小圆点</strong>（防「开着筛选以为便签丢了」），数量联动，一键清除。</li>
+<li><strong>搜索关键词高亮</strong>：<code>HighlightTextBlock</code> + <code>HighlightSegmenter</code> 在标题与摘要中给命中部分加柔和黄底；高亮分词与「有没有搜到」用<strong>同一套判定规则</strong>，不会出现「搜到了却没标出」的自相矛盾。</li>
+</ul>
+<h4 id="section-143">修复</h4>
+<ul>
+<li><strong>回收站保留天数从没生效过</strong>：<code>data.retain_days</code> 滑块能调能存，但程序里没有一处读它。现在每次启动按设定天数清理一次，未到期不动，清理前有提示。</li>
+<li><strong>备份改用 <code>VACUUM INTO</code> 一致性快照</strong>：原先直接复制数据库文件，数据库在用时拷贝可能拿到「一半新、一半旧」的库——文件大小正常、也能打开，要到恢复那天才发现不能用。快照由 SQLite 原子生成，从根上排除这种损坏。</li>
+<li><strong>恢复流程重做</strong>：先校验备份文件本身（不合格直接中止，不拿坏文件盖好数据）→ 等所有写入方停止、程序退出过程中替换（含清连接池、删 <code>-wal</code> / <code>-shm</code>）→ 自动重新打开。恢复前必先把当前数据留一份。</li>
+</ul>
+<h3 id="v1.3.02026-09-26">26.2 v1.3.0（2026-09-26）：图片附件</h3>
+<ul>
+<li><strong>添加方式</strong>：「更多」菜单 →「添加图片」（可多选）；或编辑区 <code>Ctrl+V</code> 直接粘贴剪贴板图片（顺带修复了此前粘贴图片「按了没反应」——旧逻辑只走文字粘贴通道，非文字剪贴板静默失败）。</li>
+<li><strong>展示</strong>：缩略图条夹在标题与正文之间，无图时整条不占位；缩略图按显示尺寸解码（<code>DecodePixelWidth</code>），不为小图读整张原图。独立便签窗口与主页编辑区用<strong>同一套</strong> <code>AttachmentCollection</code>，不会「便签里有、主界面看不到」。</li>
+<li><strong>存储取舍</strong>：图片字节直接入库（BLOB）而非外部文件夹，理由见 §8.2 Attachments 表注——备份快照天然包含图片。写入前等比缩小（长边 ≤1600px，<code>ImageSizing</code>）控制体积。</li>
+</ul>
+<h3 id="v1.4.0-v1.4.12026-09-26">26.3 v1.4.0 / v1.4.1（2026-09-26）：贴边收纳</h3>
+<ul>
+<li><strong>功能</strong>：便签拖到屏幕最左 / 最右边缘松手，贴边收成<strong>留 5px 细边</strong>的收纳态；鼠标移过去滑出，移开约半秒自动收回。收起绝不把便签整个推出屏幕外——推出去就再也碰不到，只能觉得「便签被弄丢了」。</li>
+<li><strong>默认关闭</strong>：自动隐藏会改变窗口行为（便签「自己不见了」），对用惯的人容易被当成故障，所以宁可多一步手动打开。</li>
+<li><strong>状态记忆</strong>：贴边方向存 <code>DockEdge</code>（0=无 1=左 2=右），重启后对着原来的边，但<strong>一定展开着</strong>——开机就见便签消失比「没贴好」严重得多。</li>
+<li><strong>v1.4.1 修正</strong>：
+<ul>
+<li>拖到边缘本身即是意图——<strong>拖到边上就贴</strong>并记下开关，不再要求先去「更多」菜单开功能（v1.4.0 的开关藏在菜单里，没开时拖到边缘毫无反应，用户只会觉得「坏了」）。</li>
+<li>吸附距离 16→<strong>28px</strong>、唤醒区 20→<strong>36px</strong>：窗口外有一圈阴影边距，用户眼里的「挨着边」和程序算的边本来就差一点，门槛卡在最边就只能反复试。</li>
+<li>拖动靠近边缘时亮<strong>琥珀色预览竖条</strong>提示「松手贴到左边 / 右边」。</li>
+<li>窗口比屏幕宽、两边都够近时改选<strong>更近的一边</strong>（原先总往左）。</li>
+</ul>
+</li>
+<li><strong>实现要点</strong>：<code>DockGeometry</code> 纯函数（常量 SnapDistance=28 / VisibleStrip=5 / ShadowMargin=12，不可混用）+ <code>DockController</code>；动画 Stop + 手动终值 + 防重入；<code>DockControllerTests.cs</code> 提供进程内 STA 测试模板。</li>
+</ul>
+<h3 id="v1.5.02026-09-27-viewmodel">26.4 v1.5.0（2026-09-27）：编辑器 ViewModel 收口</h3>
+<ul>
+<li><strong>没有任何用户可见的变化</strong>——这一版把桌面便签窗口与主页编辑区两处几乎相同的编辑逻辑收拢到基类 <code>NoteEditorViewModelBase</code>。两份重复代码的真代价是：<strong>每修一个地方都得记得修两遍</strong>。</li>
+<li><strong>起因 bug</strong>：给桌面便签的待办复选框加着色时忘了同步主页编辑区，右侧编辑区的复选框整个消失——看起来完全像样式表问题，实际是两份代码漂移。</li>
+<li><strong>颜色兜底</strong>：<code>NoteColorConverter</code> 失败时返回<strong>全透明</strong>，阴影 / 文字色「取到就用、取不到就当透明」的结果是整片看不见。现改为取不到就回退深色（阴影、<code>NoteForeground</code> 均带 <code>FallbackValue</code>）——宁可颜色不准，不让元素隐身。<strong>判有效色必须 <code>Color.A &gt; 0</code></strong>。</li>
+</ul>
+<h3 id="v1.5.12026-09-27">26.5 v1.5.1（2026-09-27）：卷角</h3>
+<ul>
+<li><strong>功能</strong>：便签右下角可折起一小块（22×22，最上层，<code>IsHitTestVisible=False</code>），纯装饰不承担功能；默认关闭，右键菜单勾选，按便签记忆（<code>IsDogEar</code> 列）。</li>
+<li><strong>配色自洽</strong>：<code>DogEarPalette</code> 从便签底色推导——亮面 = 底色提亮三成，折痕 = 压暗两成，色相不变；推导失败回退 <code>#F3F0EA</code>，<strong>绝不返回全透明</strong>。</li>
+<li><strong>连带调整</strong>：底部相对时间（「刚刚」）从右下移到左下与字数并排（原位置与折角相撞）；内容区留出折角宽度的底部空隙。</li>
+</ul>
+<h3 id="v1.5.22026-09-27">26.6 v1.5.2（2026-09-27）：极简模式右键修复</h3>
+<ul>
+<li><strong>现象</strong>：极简模式下右键弹出的是只有「剪切 / 复制 / 粘贴」的小菜单——没有极简模式开关，而极简态没有标题栏没有按钮，人被困在便签里（应急出路：双击进编辑，或从主界面列表改回）。</li>
+<li><strong>根因</strong>：便签正文每行是一个 TextBox，输入框自带上下文菜单；它在弹菜单前已把 <code>ContextMenuOpening</code> 标记为已处理（<code>e.Handled = true</code>），而自定义逻辑是普通订阅，收不到已处理的事件，全程没被叫醒。</li>
+<li><strong>修法</strong>：改用 <code>AddHandler(ContextMenuOpeningEvent, handler, handledEventsToo: true)</code>——即便已处理也通知我。极简时弹完整菜单；非极简时仍是原生小菜单，行为不变。</li>
+</ul>
+<h3 id="v1.5.32026-09-27">26.7 v1.5.3（2026-09-27）：形态规则、设置窗口与附件管理</h3>
+<ul>
+<li><strong>极简模式缩放修复</strong>：极简窗框残留了折叠态的「不可缩放」设置，把便签从极简拉回原大小后边角拽不动。现在折叠、极简、寻常三种形态<strong>各守各的规矩</strong>：极简 = 常规外框同尺寸是正确的；折叠不可缩放。</li>
+<li><strong>设置窗口自绘标题栏</strong>：与主界面同一副手工窗框（<code>CaptionHeight=40</code>），应用名上窗框顶；自绘标题栏下按钮需 <code>IsHitTestVisibleInChrome=True</code>。设置窗口左下角版本号与主页一致。</li>
+<li><strong>图片附件管理页</strong>（设置 → 数据）：<code>GetStorageSummary</code> 报总数与占用，<code>DeleteOrphans</code> 清理「彻底失去关联」的图片。<strong>软删除 ≠ 孤儿</strong>——回收站里的便签图片仍有主，不会被清。</li>
+<li><strong>主页悬浮按钮调整</strong>：悬浮按钮不再压住摘要文字（置顶 / 删除在右侧编辑窗口都有，不重复摆两份）。</li>
+<li><strong>双击崩溃修复（真虫子）</strong>：主页双击便签标题 / 摘要崩溃，日志有五次记录。根因：TextBlock 带 Inlines（搜索高亮）时 <code>e.OriginalSource</code> 是 <strong><code>Run</code>（FrameworkContentElement，不是 Visual）</strong>，裸调 <code>VisualTreeHelper.GetParent(Run)</code> 抛 <code>InvalidOperationException</code>。修法：新增 <code>Helpers/TreeWalker.cs</code>（<code>GetParentSafe</code> 对 fce 走逻辑树 <code>fce.Parent</code>，其余走视觉树），全项目 <strong>6 处爬树调用点统一收口</strong>，禁止再加裸调。</li>
+<li><strong>代码整理</strong>：<code>NoteWindow</code> 按职责拆 5 个 partial（Menus / DragResize / Reminders / LineEditing / DisplayMode），各有「改前必读」注释。</li>
+</ul>
+<h3 id="v1.2.0-v1.5.3-1">26.8 本阶段技术沉淀（v1.2.0 → v1.5.3）</h3>
+<table>
+<thead>
+<tr>
+<th>沉淀</th>
+<th>出处</th>
+<th>一句话</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>色彩自洽原则</td>
+<td>v1.5.1 卷角</td>
+<td>长在便签上的东西，颜色必须能从便签自身推出，不外借；推导失败给实色回退，绝不透明</td>
+</tr>
+<tr>
+<td>「记两遍」反模式</td>
+<td>v1.5.0 收口</td>
+<td>两处几乎相同的代码不是啰嗦，是必然漂移的种子；能收拢的尽早收拢到基类</td>
+</tr>
+<tr>
+<td>意图前置</td>
+<td>v1.4.1 贴边</td>
+<td>把便签拖到边缘本身就是清楚的表达，不要逼用户先去菜单申请许可</td>
+</tr>
+<tr>
+<td>行为变更默认关</td>
+<td>v1.4.0 贴边</td>
+<td>会让便签「自己不见」的功能，宁可多一步手动打开，也不默认生效</td>
+</tr>
+<tr>
+<td>快照优于复制</td>
+<td>v1.2.0 备份</td>
+<td>在用的 SQLite 文件直接复制可能拿到半新半旧的库；用 <code>VACUUM INTO</code></td>
+</tr>
+<tr>
+<td>静默失败最危险</td>
+<td>v1.2.0 / v1.3.0</td>
+<td>保留天数不生效、粘贴图片没反应——不报错的问题比崩溃更难发现；UI 状态（筛选圆点、贴边预览）要替用户记住隐式状态</td>
+</tr>
+<tr>
+<td>事件源爬树走 TreeWalker</td>
+<td>v1.5.3</td>
+<td>WPF 事件源不一定是 Visual（Run 是 FrameworkContentElement）；项目内爬树一律 <code>TreeWalker.GetParentSafe</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="section-144">文档结束</h2>
+<blockquote>
+<p><strong>本文档汇总了「今日营业中」桌面便签软件的完整开发流程，包括产品设计、技术方案、开发流程、打包发布、常见问题等。</strong>
+<strong>后续如有 Bug 修复或功能补充，可在对应章节追加更新。</strong>
+<strong>创作者：苏羽野</strong>
+<strong>版本：v1.5.3</strong>
+<strong>更新日期：2026-09-27</strong></p>
+</blockquote>
+
+</body>
+</html>
