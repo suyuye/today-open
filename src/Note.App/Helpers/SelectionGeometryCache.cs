@@ -39,6 +39,13 @@ internal sealed class SelectionGeometryCache
     private int _rangesLast = -1;
 
     /// <summary>
+    /// 上次计算时各行文本的内容指纹。**端点相同也必须校验它**：
+    /// 用户改字后若字数不变，区间完全一致，仅凭区间会误判「无需重算」，
+    /// 于是旧矩形被一直复用（「用久了高亮/光标才错乱」的根因）。
+    /// </summary>
+    private int _rangesContentHash = -1;
+
+    /// <summary>
     /// 每个 TextBox 的字符矩形表：字符索引 → GetRectFromCharacterIndex 的结果。
     /// 同一行内容不变时，这张表与选区端点无关，可反复复用 —— 这样拖动选区
     /// 只重算「受影响的少数几行」，而不是每次都把整个选区逐字符重算一遍。
@@ -50,7 +57,25 @@ internal sealed class SelectionGeometryCache
         public int TextLength = -1;
         public double FontSize = double.NaN;
         public double Width = double.NaN;
-        public Rect[] Rects = Array.Empty<Rect>();
+
+        /// <summary>
+        /// 建表时的文本内容。**必须参与缓存有效性判定**：
+        /// 只比 TextLength/FontSize/Width 是不够的 —— 用户改字后若字数恰好不变
+        /// （替换同长度文字、或删了又补回来），缓存会继续返回**旧文字的插入点位置表**，
+        /// 于是高亮画在旧位置、鼠标点选也按旧位置换算字符索引，
+        /// 表现为「用一阵子之后高亮错位 + 光标落点不准」，重启后缓存为空又恢复正常。
+        /// </summary>
+        public string Text = string.Empty;
+
+        /// <summary>逐字符「前插入点」矩形，长度 = TextLength + 1。</summary>
+        public Rect[] Leading = Array.Empty<Rect>();
+
+        /// <summary>
+        /// 逐字符「后插入点」矩形，长度同 <see cref="Leading"/>。
+        /// <c>Trailing[i]</c>.Left 是第 i 个字符的右边缘，且不会跳到下一个视觉行 ——
+        /// 行尾字符的右边缘只能由它得到（用 Leading[i+1] 会跨行，导致高亮少一个字）。
+        /// </summary>
+        public Rect[] Trailing = Array.Empty<Rect>();
     }
 
     /// <summary>获取绘制矩形；逐字符矩形表按行缓存，只有行内容/字号/宽度变化才重算该行。</summary>
@@ -87,32 +112,21 @@ internal sealed class SelectionGeometryCache
             if (!TryGetTransform(box, adorner, out var matrix)) continue;
 
             var charRects = GetCharRects(box, len);
-            if (charRects.Length == 0) continue;
+            if (charRects.Leading.Length == 0) continue;
 
-            // 按视觉行分段（支持自动换行）：行与行之间用 Y 判断换行。
-            // 选区 [s, e) 覆盖字符 s..e-1；右端取「e 位置插入点矩形的左边缘」，
-            // 当 e == len 时那就是最后一字的右边缘，因此行尾字符也能被完整选中高亮。
-            var first = CharRectAt(charRects, s);
-            var top = first.Top;
-            var height = first.Height > 0 ? first.Height : box.ActualHeight;
-            var x0 = first.Left;
-            double x1 = first.Right;
+            // 按视觉行分段：几何计算交给 LineSelectionGeometry（纯函数、可测），
+            // 这里只负责把结果搬到装饰器坐标系。
+            var rows = LineSelectionGeometry.BuildRowRects(
+                charRects.Leading,
+                charRects.Trailing,
+                s,
+                e,
+                box.ActualHeight);
 
-            for (var i = s + 1; i <= e; i++)
+            foreach (var row in rows)
             {
-                var r = CharRectAt(charRects, i);
-                if (r.Top > top + 0.5)
-                {
-                    // 换行：先把上一视觉行收尾，右端为上一字符的右边缘
-                    AddRow(rects, matrix, x0, CharRectAt(charRects, i - 1).Right, top, height);
-                    top = r.Top;
-                    height = r.Height > 0 ? r.Height : height;
-                    x0 = r.Left;
-                }
-                x1 = r.Left;
+                AddRow(rects, matrix, row.X, row.X + row.Width, row.Y, row.Height);
             }
-            if (x1 <= x0) x1 = CharRectAt(charRects, e).Right;
-            AddRow(rects, matrix, x0, x1, top, height);
         }
 
         _rects = rects;
@@ -121,67 +135,109 @@ internal sealed class SelectionGeometryCache
         return rects;
     }
 
-    /// <summary>记录本次端点集合，供下次 IsValid 判断是否可直接复用 _rects。</summary>
+    /// <summary>
+    /// 记录本次端点集合，供下次 <see cref="IsValid"/> 判断是否可直接复用 _rects。
+    /// 同时记录各行文本的内容指纹 —— 端点相同但文字变过时也不可复用。
+    /// </summary>
     public void MarkRanges(IReadOnlyList<(TextBox Box, int Start, int End)> ranges)
     {
         _lastRangesEqual = true;
         _rangesFingerprint = ranges.Count;
         _rangesFirst = ranges.Count > 0 ? ranges[0].Start : -1;
         _rangesLast = ranges.Count > 0 ? ranges[^1].End : -1;
+        _rangesContentHash = ComputeContentHash(ranges);
     }
 
-    /// <summary>端点指纹是否与已计算结果一致。</summary>
+    /// <summary>
+    /// 选区各行文本的内容指纹。**必须包含文本内容本身**（不是长度）：
+    /// 只比长度时，「改字后字数不变」的编辑无法被识别，旧几何会被一直复用。
+    /// </summary>
+    private static int ComputeContentHash(IReadOnlyList<(TextBox Box, int Start, int End)> ranges)
+    {
+        var hash = 17;
+        foreach (var (box, _, _) in ranges)
+        {
+            hash = hash * 31 + (box.Text ?? string.Empty).GetHashCode();
+        }
+        return hash;
+    }
+
+    /// <summary>端点指纹是否与已计算结果一致（含文本内容校验）。</summary>
     public bool SameRanges(IReadOnlyList<(TextBox Box, int Start, int End)> ranges)
     {
         if (!_lastRangesEqual) return false;
         if (ranges.Count != _rangesFingerprint) return false;
+        if (ComputeContentHash(ranges) != _rangesContentHash) return false;
         if (ranges.Count == 0) return true;
         return ranges[0].Start == _rangesFirst && ranges[^1].End == _rangesLast;
     }
 
     /// <summary>
-    /// 取（并缓存）某行的逐字符矩形表，长度 len + 1，索引 i 表示「第 i 个字符的矩形」，
-    /// 索引 len 表示行尾（最后一个字符之后）的插入点矩形。
-    /// 注意：索引 len 处必须交给原生接口取，不能用末字符矩形手工拼接 ——
-    /// 手工拼接出来的零宽矩形会让选区终点落在行尾时算不出可见矩形
-    /// （表现为「每段最后一个字选不上」）。
+    /// 取（并缓存）某行的逐字符插入点矩形表，长度均为 len + 1。
+    /// <c>Leading[i]</c>：第 i 个字符之前的插入点；<c>Leading[len]</c> 为行尾插入点。
+    /// <c>Trailing[i]</c>：第 i 个字符之后的插入点，**停留在第 i 个字符所属的视觉行内**。
+    ///
+    /// 两个数组都必须走原生接口，不能手工拼接：
+    /// * 少一个前插入点会让「选区起点落在行尾」时算不出可见矩形；
+    /// * 少一个后插入点会让每个折行视觉行的高亮**少掉最后一个字符**
+    ///   （这正是历史缺陷 «选中大段文字时强调色错乱» 的根因）——
+    ///   WPF 的 <c>GetRectFromCharacterIndex(i, true)</c> 在换行处不会跳到下一行，
+    ///   而 <c>GetRectFromCharacterIndex(i + 1)</c> 会，两者语义不同、不可互相替代。
     /// </summary>
-    private Rect[] GetCharRects(TextBox box, int len)
+    private CharRects GetCharRects(TextBox box, int len)
     {
+        var text = box.Text ?? string.Empty;
+
+        // 🔴 内容必须参与判定：长度相同的不同文字，插入点位置完全不同。
+        // 只比 len/字号/宽度会命中陈旧表（用户改字后「用久了就乱」的根因）。
         if (_charRects.TryGetValue(box, out var cached) &&
             cached.TextLength == len &&
             cached.FontSize == box.FontSize &&
-            cached.Width == box.ActualWidth)
+            cached.Width == box.ActualWidth &&
+            string.Equals(cached.Text, text, StringComparison.Ordinal))
         {
-            return cached.Rects;
+            return cached;
         }
 
-        var arr = new Rect[len + 1];
+        var leading = new Rect[len + 1];
+        var trailing = new Rect[len + 1];
         for (var i = 0; i < len; i++)
         {
-            arr[i] = box.GetRectFromCharacterIndex(i);
+            leading[i] = box.GetRectFromCharacterIndex(i);
+            trailing[i] = box.GetRectFromCharacterIndex(i, true);
         }
+
         // 行尾插入点：优先用原生查询（WPF 会给出该视觉行末尾的真实插入点矩形），
         // 取不到时再退回「末字符右移」的保守近似，并保证高度非零。
         var tail = box.GetRectFromCharacterIndex(len);
         if (tail.Height <= 0 && tail.Width <= 0)
         {
-            var last = len > 0 ? arr[len - 1] : new Rect(0, 0, 0, box.ActualHeight);
+            var last = len > 0 ? leading[len - 1] : new Rect(0, 0, 0, box.ActualHeight);
             var h = last.Height > 0 ? last.Height : box.ActualHeight;
             // 用一个空文本测量出的字宽作为行尾插入点宽度，避免出现零宽矩形
             var w = MeasureSpaceWidth(box);
             tail = new Rect(last.Right, last.Top, w, h);
         }
-        arr[len] = tail;
+        leading[len] = tail;
 
-        _charRects[box] = new CharRects
+        var tailTrailing = box.GetRectFromCharacterIndex(len, true);
+        if (tailTrailing.Height <= 0 && tailTrailing.Width <= 0)
+        {
+            tailTrailing = tail;
+        }
+        trailing[len] = tailTrailing;
+
+        var entry = new CharRects
         {
             TextLength = len,
             FontSize = box.FontSize,
             Width = box.ActualWidth,
-            Rects = arr,
+            Text = text,
+            Leading = leading,
+            Trailing = trailing,
         };
-        return arr;
+        _charRects[box] = entry;
+        return entry;
     }
 
     /// <summary>行尾插入点的兜底宽度：用同字体测量一个空格，失败时退回 1 像素。</summary>
@@ -209,9 +265,6 @@ internal sealed class SelectionGeometryCache
         return box.FontSize * 0.5;
     }
 
-    private static Rect CharRectAt(Rect[] rects, int index) =>
-        index >= 0 && index < rects.Length ? rects[index] : default;
-
     /// <summary>失效缓存（切换便签、行集合重建时调用）。</summary>
     public void Invalidate()
     {
@@ -223,6 +276,7 @@ internal sealed class SelectionGeometryCache
         _editorWidth = double.NaN;
         _editorHeight = double.NaN;
         _lastRangesEqual = false;
+        _rangesContentHash = -1;
     }
 
     private static void AddRow(List<Rect> rects, Matrix matrix, double x0, double x1, double top, double height)
@@ -247,6 +301,7 @@ internal sealed class SelectionGeometryCache
         {
             if (box.TransformToVisual(adorner) is not MatrixTransform mt) return false;
             matrix = mt.Matrix;
+            PruneDetachedAdornerCaches();
             _transforms[box] = matrix;
             return true;
         }
@@ -255,6 +310,32 @@ internal sealed class SelectionGeometryCache
             return false;
         }
     }
+
+    /// <summary>
+    /// 剔除已脱离视觉树的 TextBox 缓存条目。
+    /// 行增删 / 容器回收会不断产生新的 TextBox 引用，若不清理，
+    /// <see cref="_transforms"/> 与 <see cref="_charRects"/> 会在长时使用中无限增长
+    /// （键是控件引用，字典持有它们会阻止回收）。
+    /// </summary>
+    private void PruneDetachedAdornerCaches()
+    {
+        // 值很小（选区涉及的行数）时不必付这份开销，阈值内直接跳过
+        if (_transforms.Count < DetachPruneThreshold) return;
+
+        var dead = new List<TextBox>();
+        foreach (var box in _transforms.Keys)
+        {
+            if (PresentationSource.FromVisual(box) is null) dead.Add(box);
+        }
+        foreach (var box in dead)
+        {
+            _transforms.Remove(box);
+            _charRects.Remove(box);
+        }
+    }
+
+    /// <summary>触发清理的缓存规模阈值。</summary>
+    private const int DetachPruneThreshold = 64;
 
     private bool IsValid(
         IReadOnlyList<TextBox> boxes,

@@ -1197,12 +1197,21 @@
                             </Hyperlink>
                         </TextBlock>
 
+                        <!-- 项目主页（GitHub） -->
+                        <TextBlock HorizontalAlignment="Center" Margin="0,4,0,0" FontSize="11.5">
+                            <Hyperlink NavigateUri="{Binding RepositoryUrl}" RequestNavigate="OnLicenseRequestNavigate"
+                                       Foreground="{StaticResource BrandPrimary}" TextDecorations="None">
+                                项目主页：github.com/suyuye/today-open
+                            </Hyperlink>
+                        </TextBlock>
+
                         <!-- 分隔线 -->
                         <Border Height="1" Background="{DynamicResource BorderLight}" Margin="0,20,0,0" Width="320"/>
 
-                        <!-- 检查更新 -->
+                        <!-- 检查更新：跳转项目仓库，在 Releases 页查看最新版本 -->
                         <Button Content="检查更新" Style="{StaticResource BaseButtonStyle}"
-                                Command="{Binding CheckUpdateCommand}" HorizontalAlignment="Center" Margin="0,16,0,0"/>
+                                Command="{Binding CheckUpdateCommand}" HorizontalAlignment="Center" Margin="0,16,0,0"
+                                ToolTip="打开项目 GitHub 仓库，在 Releases 页查看并下载最新版本"/>
 
                         <!-- 版权 -->
                         <TextBlock Text="© 2026 苏羽野. All rights reserved." FontSize="10.5"

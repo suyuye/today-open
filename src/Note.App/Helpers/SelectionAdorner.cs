@@ -40,6 +40,12 @@ internal sealed class SelectionAdorner : Adorner
     /// <summary>当前选区对应的绘制矩形，在 SetRanges 时算好，OnRender 只贴图。</summary>
     private List<Rect> _cachedRects = _noRects;
 
+    /// <summary>
+    /// 上次计算时各选区行的文本内容（按 TextBox 引用记录）。
+    /// 用于识别「区间没变但文字变了」——这类变化同样必须让高亮重算。
+    /// </summary>
+    private readonly Dictionary<TextBox, string> _lastRangeText = new();
+
     private static readonly List<Rect> _noRects = new();
 
     public SelectionAdorner(ItemsControl adornedElement, ScrollViewer? scrollViewer) : base(adornedElement)
@@ -62,7 +68,22 @@ internal sealed class SelectionAdorner : Adorner
         _adorned.LayoutUpdated -= OnLayoutUpdated;
         _ranges.Clear();
         _cachedRects = _noRects;
+        _lastRangeText.Clear();
         _cache.Invalidate();
+    }
+
+    /// <summary>
+    /// 行集合发生结构性变化（增删行 / 容器重建）后调用：
+    /// 行的垂直位置整体位移，缓存的变换矩阵与字符插入点表全部作废。
+    /// 只清几何缓存，不动选区状态（拖选中途换行不应丢选区）。
+    /// </summary>
+    public void InvalidateGeometry()
+    {
+        _cache.Invalidate();
+        _lastRangeText.Clear();
+        _cachedRects = _noRects;
+        _hasDrawn = false;
+        _lastSignature = default;
     }
 
     /// <summary>
@@ -82,7 +103,10 @@ internal sealed class SelectionAdorner : Adorner
 
         // 与当前选区等价时不做任何事：这是拖选过程中的主要开销来源，
         // 每次鼠标移动都会调用本方法，无脑 InvalidateVisual 会引发重绘风暴。
-        if (SameRanges(_ranges, next)) return;
+        //
+        // 🔴 但「区间相同」不等于「几何相同」：用户改字后字数不变时区间完全一致，
+        //    而插入点位置已全变。所以还必须确认各行文字没变过。
+        if (SameRanges(_ranges, next) && ContentUnchanged()) return;
 
         _ranges = next;
         _hasDrawn = false;
@@ -92,6 +116,8 @@ internal sealed class SelectionAdorner : Adorner
         _cachedRects = _ranges.Count == 0
             ? _noRects
             : ComputeRects();
+
+        SnapshotRangeText();
 
         // 空集合时重绘一次以擦除上次高亮；有选区时只画已算好的矩形
         InvalidateVisual();
@@ -133,6 +159,31 @@ internal sealed class SelectionAdorner : Adorner
         return true;
     }
 
+    /// <summary>
+    /// 内容是否与上次计算时一致。**区间相同但文字变了**（用户改字后字数恰好不变）
+    /// 时，<see cref="SetRanges"/> 不可提前返回 —— 否则旧的高亮矩形会被一直复用，
+    /// 表现为「用久了之后高亮错位、光标落点不准」（重启后缓存为空所以又好一阵子）。
+    /// </summary>
+    private bool ContentUnchanged()
+    {
+        foreach (var (box, _, _) in _ranges)
+        {
+            if (!_lastRangeText.TryGetValue(box, out var prev)) return false;
+            if (!string.Equals(prev, box.Text ?? string.Empty, StringComparison.Ordinal)) return false;
+        }
+        return true;
+    }
+
+    /// <summary>记录本次各行的文本内容，供 <see cref="ContentUnchanged"/> 比对。</summary>
+    private void SnapshotRangeText()
+    {
+        _lastRangeText.Clear();
+        foreach (var (box, _, _) in _ranges)
+        {
+            _lastRangeText[box] = box.Text ?? string.Empty;
+        }
+    }
+
     protected override void OnRender(DrawingContext drawingContext)
     {
         if (_cachedRects.Count == 0)
@@ -163,7 +214,10 @@ internal sealed class SelectionAdorner : Adorner
         {
             textHash = textHash * 31 + start;
             textHash = textHash * 31 + end;
-            textHash = textHash * 31 + (box.Text?.Length ?? 0);
+            // 🔴 必须用文本**内容**参与哈希，不能只用长度：
+            // 用长度时，「改字后字数不变」的编辑不会改变签名 →
+            // OnLayoutUpdated 判定「无需重绘」→ 高亮停留在旧几何。
+            textHash = textHash * 31 + (box.Text ?? string.Empty).GetHashCode();
             textHash = textHash * 31 + box.FontSize.GetHashCode();
         }
 

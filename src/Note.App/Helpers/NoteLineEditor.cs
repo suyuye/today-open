@@ -96,6 +96,9 @@ public sealed class NoteLineEditor
     {
         _boxCache.Clear();
         _cachedLines = null;
+        // 行的垂直位置整体位移，几何缓存（变换矩阵 + 字符插入点表）全部作废。
+        // 漏掉这一步 → 增删行后高亮仍画在旧位置（「用久了错位」的来源之一）。
+        _adorner?.InvalidateGeometry();
     }
 
     /// <summary>
