@@ -46,6 +46,14 @@ internal sealed class SelectionAdorner : Adorner
     /// </summary>
     private readonly Dictionary<TextBox, string> _lastRangeText = new();
 
+    /// <summary>
+    /// 上次计算时各选区行相对本装饰器的原点。
+    /// **必须参与提前返回判定**：行增删 / 换行回流 / 内边距或字号变化会让整行平移，
+    /// 而 TextBox 引用、文本、宽度可能一丝未变 —— 只比区间与文字就会误判「无需重算」，
+    /// 于是高亮停在旧位置（用户看到的「用久了越飘、色带整体偏移、行末超出文字」）。
+    /// </summary>
+    private readonly Dictionary<TextBox, Point> _lastRangeOrigin = new();
+
     private static readonly List<Rect> _noRects = new();
 
     public SelectionAdorner(ItemsControl adornedElement, ScrollViewer? scrollViewer) : base(adornedElement)
@@ -69,6 +77,7 @@ internal sealed class SelectionAdorner : Adorner
         _ranges.Clear();
         _cachedRects = _noRects;
         _lastRangeText.Clear();
+        _lastRangeOrigin.Clear();
         _cache.Invalidate();
     }
 
@@ -81,6 +90,7 @@ internal sealed class SelectionAdorner : Adorner
     {
         _cache.Invalidate();
         _lastRangeText.Clear();
+        _lastRangeOrigin.Clear();
         _cachedRects = _noRects;
         _hasDrawn = false;
         _lastSignature = default;
@@ -88,10 +98,23 @@ internal sealed class SelectionAdorner : Adorner
 
     /// <summary>
     /// 布局变化时按需重绘：无选区直接返回（关键修复点，原实现此处无条件重绘导致死循环）。
+    ///
+    /// 🔴 若布局位移导致选区各行位置改变，必须先**重算矩形**再重绘 ——
+    /// 否则 OnRender 只是把旧矩形画一遍，位置依旧是错的。
+    /// 这正是「不移动鼠标、只在上面增删一行，高亮就飘掉」的成因。
     /// </summary>
     private void OnLayoutUpdated(object? sender, EventArgs e)
     {
         if (_ranges.Count == 0) return;
+
+        if (!RangeOriginUnchanged())
+        {
+            _cachedRects = ComputeRects();
+            SnapshotRangeText();
+            SnapshotRangeOrigin();
+            _hasDrawn = false;
+        }
+
         var signature = ComputeSignature();
         if (_hasDrawn && signature == _lastSignature) return;
         InvalidateVisual();
@@ -104,9 +127,15 @@ internal sealed class SelectionAdorner : Adorner
         // 与当前选区等价时不做任何事：这是拖选过程中的主要开销来源，
         // 每次鼠标移动都会调用本方法，无脑 InvalidateVisual 会引发重绘风暴。
         //
-        // 🔴 但「区间相同」不等于「几何相同」：用户改字后字数不变时区间完全一致，
-        //    而插入点位置已全变。所以还必须确认各行文字没变过。
-        if (SameRanges(_ranges, next) && ContentUnchanged()) return;
+        // 🔴 但「区间相同」不等于「几何相同」，有两种情形都会让几何变化而区间不变：
+        //    ① 用户改字后字数不变 —— 插入点位置已全变（靠 ContentUnchanged 识别）；
+        //    ② 行在装饰器中的位置发生位移（顶部增删行、换行回流、内边距/字号变化）——
+        //       文字与区间都丝毫未动（靠 RangeOriginUnchanged 识别）。
+        //    缺任一判据都会复用旧矩形，表现为「刚启动正常、用一阵子高亮就飘了」。
+        if (SameRanges(_ranges, next) && ContentUnchanged() && RangeOriginUnchanged())
+        {
+            return;
+        }
 
         _ranges = next;
         _hasDrawn = false;
@@ -118,6 +147,7 @@ internal sealed class SelectionAdorner : Adorner
             : ComputeRects();
 
         SnapshotRangeText();
+        SnapshotRangeOrigin();
 
         // 空集合时重绘一次以擦除上次高亮；有选区时只画已算好的矩形
         InvalidateVisual();
@@ -184,6 +214,52 @@ internal sealed class SelectionAdorner : Adorner
         }
     }
 
+    /// <summary>
+    /// 各行相对本装饰器的原点是否与上次计算时一致。
+    /// 布局位移（顶部增删行 / 换行回流 / 内边距或字号变化 / DPI 切换）只改位置、
+    /// 不改引用与文本，因此必须单独核对，否则高亮会停在旧位置。
+    /// </summary>
+    private bool RangeOriginUnchanged()
+    {
+        foreach (var (box, _, _) in _ranges)
+        {
+            if (!_lastRangeOrigin.TryGetValue(box, out var prev)) return false;
+            if (!TryReadOrigin(box, out var now)) return false;
+            if (Math.Abs(prev.X - now.X) > 0.01 || Math.Abs(prev.Y - now.Y) > 0.01) return false;
+        }
+        return true;
+    }
+
+    /// <summary>记录本次各行相对本装饰器的原点，供 <see cref="RangeOriginUnchanged"/> 比对。</summary>
+    private void SnapshotRangeOrigin()
+    {
+        _lastRangeOrigin.Clear();
+        foreach (var (box, _, _) in _ranges)
+        {
+            if (TryReadOrigin(box, out var origin))
+            {
+                _lastRangeOrigin[box] = origin;
+            }
+        }
+    }
+
+    /// <summary>读取 TextBox 相对本装饰器的原点；尚未挂上视觉树时返回 false。</summary>
+    private bool TryReadOrigin(TextBox box, out Point origin)
+    {
+        origin = default;
+        try
+        {
+            if (PresentationSource.FromVisual(box) is null) return false;
+            if (box.TransformToVisual(this) is not MatrixTransform mt) return false;
+            origin = new Point(mt.Matrix.OffsetX, mt.Matrix.OffsetY);
+            return true;
+        }
+        catch (InvalidOperationException)
+        {
+            return false;
+        }
+    }
+
     protected override void OnRender(DrawingContext drawingContext)
     {
         if (_cachedRects.Count == 0)
@@ -204,7 +280,7 @@ internal sealed class SelectionAdorner : Adorner
     }
 
     /// <summary>
-    /// 几何签名：选区区间、行内容/字号、滚动位置、编辑区尺寸任一变化才需要重绘。
+    /// 几何签名：选区区间、行内容/字号、**各行位置**、滚动位置、编辑区尺寸任一变化才需要重绘。
     /// 这是抑制重绘风暴的第二道闸门（第一道是「无选区直接返回」）。
     /// </summary>
     private SelectionSignature ComputeSignature()
@@ -219,6 +295,13 @@ internal sealed class SelectionAdorner : Adorner
             // OnLayoutUpdated 判定「无需重绘」→ 高亮停留在旧几何。
             textHash = textHash * 31 + (box.Text ?? string.Empty).GetHashCode();
             textHash = textHash * 31 + box.FontSize.GetHashCode();
+            // 🔴 行位置也要入签名：顶部增删行 / 换行回流会让整行平移，
+            // 而区间、文本、字号全都没变 —— 不入签名就判定「无需重绘」。
+            if (TryReadOrigin(box, out var origin))
+            {
+                textHash = textHash * 31 + origin.X.GetHashCode();
+                textHash = textHash * 31 + origin.Y.GetHashCode();
+            }
         }
 
         return new SelectionSignature(

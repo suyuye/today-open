@@ -17,7 +17,14 @@ namespace NoteApp.Helpers;
 /// 选区几何缓存：把「字符区间 → 绘制矩形」的结果算一次存下来，直到失效前反复复用。
 /// 避免每次重绘都跑一遍 <see cref="TextBox.GetRectFromCharacterIndex"/> 逐字符循环
 /// （跨行全选时是上千次文本布局计算，是选区拖拽卡顿的主因）。
-/// 缓存由版本号驱动：内容/选中项/滚动/尺寸/字号任一变化才失效重算。
+///
+/// 缓存有效性由三组判据共同决定，任一失效即重算：
+/// <list type="number">
+/// <item>规模类：行数 / 滚动 / 编辑区尺寸；</item>
+/// <item>内容类：选区端点 + 各行文本内容指纹（**不能只比长度**）；</item>
+/// <item>布局类：各行 TextBox 相对装饰器的**实时变换矩阵**（**不能永久信任缓存值**）——
+/// 行增删、换行回流、内边距/字号变化都会让整行位移，而引用/文本/宽度可能完全不变。</item>
+/// </list>
 /// </summary>
 internal sealed class SelectionGeometryCache
 {
@@ -27,7 +34,10 @@ internal sealed class SelectionGeometryCache
     private double _editorWidth = double.NaN;
     private double _editorHeight = double.NaN;
 
-    // 每个 TextBox 的变换矩阵（相对装饰器坐标系），按引用缓存，避免重绘时逐行 TransformToVisual
+    // 每个 TextBox 的变换矩阵（相对装饰器坐标系），按引用缓存，避免重绘时逐行 TransformToVisual。
+    // 🔴 缓存不可无条件信任：行增删 / 换行回流 / 内边距变化都会让整行位移，
+    //    而 TextBox 引用不变、宽度也可能不变，仅凭宽度/内容判据看不出位移。
+    //    因此每次复用前都要与实时矩阵核对（见 EnsureTransformsFresh）。
     private readonly Dictionary<TextBox, Matrix> _transforms = new();
 
     private List<Rect>? _rects;
@@ -94,8 +104,17 @@ internal sealed class SelectionGeometryCache
             return _empty;
         }
 
-        // 几何未变 + 端点未变 → 直接复用已算好的矩形
-        if (IsValid(boxes, scrollOffset, editorWidth, editorHeight) && SameRanges(ranges))
+        // 🔴 变换矩阵必须每次核对：布局位移（行增删、换行回流、内边距/字号变化、
+        //    滚动、DPI 变化）会让 TextBox 相对装饰器整体平移，而它的引用、文本、
+        //    宽度都可能纹丝不动 —— 此时全部旧判据都会通过，高亮却画在老位置上，
+        //    表现为「越用越飘、色带整体偏移、行末超出文字」。
+        //    这也是「刚启动正常、用一会儿才乱」的直接成因：缓存是随使用逐步建立的。
+        var transformsFresh = EnsureTransformsFresh(ranges, adorner);
+
+        // 几何未变 + 端点未变 + 变换矩阵未漂移 → 直接复用已算好的矩形
+        if (transformsFresh &&
+            IsValid(boxes, scrollOffset, editorWidth, editorHeight) &&
+            SameRanges(ranges))
         {
             return _rects!;
         }
@@ -294,21 +313,68 @@ internal sealed class SelectionGeometryCache
         rects.Add(transformed);
     }
 
-    private bool TryGetTransform(TextBox box, Visual adorner, out Matrix matrix)
+    /// <summary>
+    /// 核对（必要时刷新）本次选区涉及的所有 TextBox 的变换矩阵。
+    /// </summary>
+    /// <returns>所有矩阵都与实时布局一致时为 true；发现并刷新了漂移则为 false（调用方须重算）。</returns>
+    private bool EnsureTransformsFresh(
+        IReadOnlyList<(TextBox Box, int Start, int End)> ranges,
+        Visual adorner)
     {
-        if (_transforms.TryGetValue(box, out matrix)) return true;
+        var allFresh = true;
+        foreach (var (box, _, _) in ranges)
+        {
+            if (!TryGetTransform(box, adorner, out var cached)) continue;
+
+            if (!TryReadLiveTransform(box, adorner, out var live))
+            {
+                // 取不到实时矩阵（尚未挂上视觉树）：保留旧值，但本轮视为需重算
+                allFresh = false;
+                continue;
+            }
+
+            // 判据覆盖平移与缩放：任意一项漂移都必须重算。
+            if (!NearlyEqual(cached.OffsetX, live.OffsetX) ||
+                !NearlyEqual(cached.OffsetY, live.OffsetY) ||
+                !NearlyEqual(cached.M11, live.M11) ||
+                !NearlyEqual(cached.M22, live.M22))
+            {
+                _transforms[box] = live;
+                allFresh = false;
+            }
+        }
+
+        return allFresh;
+    }
+
+    /// <summary>浮点容差比较：亚像素差异不必触发重算。</summary>
+    private static bool NearlyEqual(double a, double b) => Math.Abs(a - b) < 0.01;
+
+    /// <summary>读取 TextBox 相对装饰器的实时变换矩阵；未挂上视觉树时返回 false。</summary>
+    private static bool TryReadLiveTransform(TextBox box, Visual adorner, out Matrix matrix)
+    {
+        matrix = default;
         try
         {
+            if (PresentationSource.FromVisual(box) is null) return false;
             if (box.TransformToVisual(adorner) is not MatrixTransform mt) return false;
             matrix = mt.Matrix;
-            PruneDetachedAdornerCaches();
-            _transforms[box] = matrix;
             return true;
         }
         catch (InvalidOperationException)
         {
             return false;
         }
+    }
+
+    private bool TryGetTransform(TextBox box, Visual adorner, out Matrix matrix)
+    {
+        if (_transforms.TryGetValue(box, out matrix)) return true;
+        if (!TryReadLiveTransform(box, adorner, out matrix)) return false;
+
+        PruneDetachedAdornerCaches();
+        _transforms[box] = matrix;
+        return true;
     }
 
     /// <summary>
