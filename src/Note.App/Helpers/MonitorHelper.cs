@@ -128,30 +128,6 @@ internal static class MonitorHelper
         return new Rect(x, y, w, h);
     }
 
-    /// <summary>
-    /// 所有显示器并集的边界（DIP），供框选覆盖层窗口铺满整个桌面用。
-    ///
-    /// ⚠️ 这里刻意用**系统 DPI** 而不是某块屏的 DPI：虚拟桌面可能跨越 DPI 不同的多块屏，
-    /// 而 WPF 窗口的 <c>Left</c>/<c>Top</c> 在跨屏时由系统按各自屏的 DPI 解释，
-    /// 没有单一的"正确"缩放系数。用系统 DPI 换算得到的矩形在工程上足够铺满桌面，
-    /// 个别像素的偏差只体现在覆盖层边缘（那部分本来就不显示任何东西）。
-    /// </summary>
-    internal static (double Left, double Top, double Width, double Height) VirtualScreenBoundsDip()
-    {
-        var physical = VirtualScreenBoundsPhysical();
-        if (physical.IsEmpty)
-        {
-            return (0, 0, 1920, 1080);
-        }
-
-        var scale = GetSystemDpiScale();
-        return (
-            physical.Left / scale,
-            physical.Top / scale,
-            physical.Width / scale,
-            physical.Height / scale);
-    }
-
     /// <summary>DIP 点 → 物理像素点。</summary>
     private static POINT DipToPhysicalPoint(double dipX, double dipY)
     {
@@ -229,82 +205,6 @@ internal static class MonitorHelper
 
         var dpi = WindowNativeMethods.GetDpiForWindow(handle);
         return dpi <= 0 ? 1.0 : dpi / 96.0;
-    }
-
-    /// <summary>
-    /// 系统级 DPI 缩放（主屏）。
-    ///
-    /// 供框选相关代码使用：全局钩子拿到的是**物理像素**，需要换算成 WPF 的 DIP
-    /// 才能和窗口坐标比较。跨屏且各屏 DPI 不同时，这里用系统 DPI 做统一换算 ——
-    /// 详见 <see cref="VirtualScreenBoundsDip"/> 的说明。
-    /// </summary>
-    internal static double SystemDpiScale() => GetSystemDpiScale();
-
-    /// <summary>
-    /// 把「屏幕物理像素点」换算成「与便签窗口同一坐标系」的 DIP 点。
-    ///
-    /// 🔴 **必须按该点所在显示器的 DPI 换算，不能用系统 DPI**：
-    /// 便签窗口的 <c>Left</c>/<c>Top</c> 是 DIP，而 DIP 的解释依赖窗口当前所在屏。
-    /// 主屏 150%、副屏 100% 时，用 1.5 去算副屏上的坐标会整体偏移三分之一屏宽 ——
-    /// 表现为"在副屏框选，选框跑到主屏去了"。
-    ///
-    /// 做法由两步组成，缺一不可：
-    /// 1. 用**物理点**找到它落在哪块屏（<see cref="WorkAreaPhysicalForPoint"/>），
-    ///    拿到该屏的物理工作区；
-    /// 2. 该屏物理工作区左上角对应的 DIP 值，等于「物理左上角 ÷ 该屏 DPI」
-    ///    —— 这正是 WPF 的 <c>Left</c>/<c>Top</c> 在多屏混合 DPI 下的定义。
-    /// </summary>
-    internal static Point WindowDipFromPhysical(Point physical)
-    {
-        var monitor = WindowNativeMethods.MonitorFromPoint(
-            new POINT { X = (int)Math.Round(physical.X), Y = (int)Math.Round(physical.Y) },
-            WindowNativeMethods.MONITOR_DEFAULTTONEAREST);
-
-        // 用该屏的物理工作区反推 DPI：MonitorFromPoint 给的是显示器句柄，
-        // 但 GetMonitorInfo 只给区域、不给 DPI，所以要另取一次 DPI。
-        var workPhysical = GetWorkAreaPhysical(monitor, fallbackToPrimary: true);
-        var scale = GetDpiScaleForMonitor(monitor);
-
-        // 该屏物理工作区左上角的 DIP 值
-        var originDipX = workPhysical.Left / scale;
-        var originDipY = workPhysical.Top / scale;
-
-        return new Point(
-            originDipX + (physical.X - workPhysical.Left) / scale,
-            originDipY + (physical.Y - workPhysical.Top) / scale);
-    }
-
-    /// <summary>取指定显示器的 DPI 缩放。monitor 为零时按系统 DPI 处理。</summary>
-    private static double GetDpiScaleForMonitor(IntPtr monitor)
-    {
-        if (monitor == IntPtr.Zero)
-        {
-            return GetSystemDpiScale();
-        }
-
-        // shcore 的 GetDpiForMonitor 在部分老系统上不可用，
-        // 失败时静默退回系统 DPI —— 单屏场景下两者完全一致。
-        try
-        {
-            if (WindowNativeMethods.GetDpiForMonitor(
-                    monitor,
-                    WindowNativeMethods.MDT_EFFECTIVE_DPI,
-                    out var dpiX,
-                    out _) == 0 && dpiX > 0)
-            {
-                return dpiX / 96.0;
-            }
-        }
-        catch (DllNotFoundException)
-        {
-            // shcore 不存在：老系统
-        }
-        catch (EntryPointNotFoundException)
-        {
-            // 有 shcore 但没有该入口
-        }
-
-        return GetSystemDpiScale();
     }
 
     /// <summary>系统级 DPI 缩放（主屏）。</summary>

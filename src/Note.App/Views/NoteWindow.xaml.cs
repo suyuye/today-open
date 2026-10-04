@@ -175,184 +175,10 @@ public partial class NoteWindow : Window, NoteLineEditor.IHost
     internal static Func<NoteWindow, List<Rect>>? OtherNoteRectsProvider { get; set; }
 
     /// <summary>
-    /// 「这张便签此刻是否属于框选选中集合」的查询回调。
-    ///
-    /// **为什么必须有它（这是一个真实缺陷的修复）**：用户框选两张便签后，在**其中一张**上按下想整组拖动。
-    /// 此时按下的落点在那张便签身上，便签自己的标题栏处理也会被触发 ——
-    /// 于是「统一拖动」与「单张拖动（<see cref="Window.DragMove"/>）」**同时**生效：
-    /// 被按住的那张同时被两条路径移动，位移比其他成员多一截，
-    /// 组内相对位置被破坏（实测多出 11 物理像素）。
-    ///
-    /// 两条路径的时序**不可靠**（实测 WPF 输入管线先于全局钩子的转投执行），
-    /// 所以不能在钩子里"事后通知便签别拖"，必须让便签在**决定拖之前**主动问一句。
-    /// 这里做成静态注入点，与 <see cref="OtherNoteRectsProvider"/> 同理，
-    /// 守住「窗口类不依赖 WindowService / MarqueeSelector」的单向依赖。
-    /// </summary>
-    internal static Func<NoteWindow, bool>? IsSelectedByMarqueeProvider { get; set; }
-
-    /// <summary>
-    /// 阴影边距（DIP）。框选协调器要靠它把「含阴影的窗口外框」换算成「可见内容矩形」——
-    /// 阴影是透明的，用户看到的便签边界是内容边界，用外框做命中判定会误判。
+    /// 阴影边距（DIP），用于把「含阴影的窗口外框」换算成「可见内容矩形」——
+    /// 阴影是透明的，用户看到的便签边界是内容边界，用外框做对齐判定会永远差一个边距。
     /// </summary>
     internal double ShadowMarginValue => ShadowMargin;
-
-    /// <summary>
-    /// 框选时的高亮反馈（被框中 → 描一圈琥珀色边）。
-    ///
-    /// 用一条独立于形态的边缘高亮，而不是改便签底色 ——
-    /// 便签颜色是用户自己选的，不该被临时选中状态覆盖。
-    /// </summary>
-    internal void SetMarqueeHighlight(bool on)
-    {
-        if (MarqueeHighlight is null)
-        {
-            return;
-        }
-
-        MarqueeHighlight.Visibility = on ? Visibility.Visible : Visibility.Collapsed;
-    }
-
-    /// <summary>
-    /// 框选批量拖动结束后落库位置。
-    ///
-    /// 走的是与便签自身拖动完全相同的保存路径（<c>UpdateWindowPosition</c> + 贴边判定），
-    /// 这样"框选拖过去的便签"与"手动拖过去的便签"在数据上没有任何差别 ——
-    /// 位置会正确保存，拖到屏幕边缘也会正确贴边。
-    /// </summary>
-    internal void CommitPositionAfterGroupDrag()
-    {
-        _viewModel.UpdateWindowPosition(Left, Top);
-    }
-
-    // ---------- 框选批量拖动的位置写入 ----------
-    //
-    // 🔴 为什么不能直接 `Left = xxx`：折叠胶囊的**窗口高度是一条 200ms 动画**，
-    // 动画在跑的时候 `Height` 是「动画值」，而 `Left/Top` 一旦被赋值，
-    // WPF 会把窗口按新的布局重新放置 —— 表现为拖动胶囊时它上下抖、或者跳到别处。
-    // 批量拖动是"高频连续写位置"，必然与正在跑的动画打架。
-    //
-    // 所以批量拖动**先掐掉正在跑的高度动画**（`BeginAnimation(HeightProperty, null)`
-    // 会把当前动画值固化成当前值），之后就是一条干净的位置写入路径。
-    // 用户看到的差异是"拖动胶囊期间高度动画被跳过" —— 这是可接受的，
-    // 因为拖动的视觉重心本来就在"整体跟着鼠标走"，高度渐变会分散注意力。
-
-    /// <summary>批量拖动的起始窗口位置。折叠态在动画中时按"已落定的位置"记。</summary>
-    internal (double Left, double Top) ResolveGroupDragOrigin()
-    {
-        FreezeHeightAnimation();
-        return (Left, Top);
-    }
-
-    /// <summary>
-    /// 🔴 **批量拖动专用**：把窗口移到指定位置，且**每帧只产生一次 Win32 调用**。
-    ///
-    /// 为什么不能沿用 <c>Left = x; Top = y;</c>：
-    /// <see cref="Window.Left"/> 与 <see cref="Window.Top"/> 是两个独立的依赖属性，
-    /// 各自 setter 内部都会走一遍 <c>SetWindowPos</c>（经 WPF 的
-    /// <c>UpdateWindowLocation</c>），并各自触发一轮布局失效。
-    /// 于是移动一张便签要**两次**跨进程调用 + 两轮 Measure/Arrange；
-    /// 再叠上对齐吸附的 <see cref="NudgeGroupDragX"/>/<see cref="NudgeGroupDragY"/>，
-    /// 每帧就是 4 次 —— 框选拖动七八张时明显发涩。
-    ///
-    /// 这里改为**直接操作 HWND**：一次 <c>SetWindowPos</c> 同时给出 X/Y，
-    /// 跳过 WPF 布局管线（位置变化本来就与布局无关，窗口是顶级窗口，
-    /// 移动它不需要重新测量内容）。
-    ///
-    /// ⚠️ **代价与配套**：这样做不会同步更新 WPF 的 <see cref="Window.Left"/>/<see cref="Window.Top"/>
-    /// 属性缓存，所以拖动期间**不能**再靠这两个属性读位置
-    /// （详见 <see cref="GetGroupDragPosition"/> 与 <see cref="SyncPositionFromWindow"/>）。
-    /// 拖动结束时由 <see cref="SyncPositionFromWindow"/> 一次性同步回来。
-    ///
-    /// 坐标系：入参是 DIP，调用方（便签虚拟桌面坐标系）与本窗口同屏同缩放，
-    /// 因此按窗口自己的 DPI 换算成物理像素。
-    /// </summary>
-    internal void SetGroupDragPosition(double left, double top)
-    {
-        var hwnd = _hWndSource?.Handle ?? IntPtr.Zero;
-        if (hwnd == IntPtr.Zero)
-        {
-            // 极端兜底：句柄还没就绪时退回属性路径（正确性优先于性能）
-            Left = left;
-            Top = top;
-            return;
-        }
-
-        var scale = GetCurrentDpiScale();
-        var x = (int)Math.Round(left * scale);
-        var y = (int)Math.Round(top * scale);
-
-        // 只移动、不改尺寸、不激活、不改层级。
-        // 🔴 **不要加 SWP_NOSENDCHANGING**：那会抑制 WM_WINDOWPOSCHANGING，
-        // 而 WPF 的 HwndSource 需要它来感知位置变化、并在跨屏时处理 per-monitor DPI 切换。
-        // 少了它，便签从主屏拖到副屏（两者缩放不同）后会保持旧缩放尺寸。
-        WindowNativeMethods.SetWindowPos(
-            hwnd,
-            IntPtr.Zero,
-            x,
-            y,
-            0,
-            0,
-            WindowNativeMethods.SWP_NOSIZE
-                | WindowNativeMethods.SWP_NOZORDER
-                | WindowNativeMethods.SWP_NOACTIVATE);
-    }
-
-    /// <summary>
-    /// 批量拖动期间**读**窗口位置。
-    ///
-    /// 因为 <see cref="SetGroupDragPosition"/> 走的是 HWND 直写，
-    /// WPF 的 <see cref="Window.Left"/>/<see cref="Window.Top"/> 已不再可信 ——
-    /// 从窗口句柄实时取物理位置再换算回 DIP，才是拖动中的真相。
-    /// </summary>
-    internal (double Left, double Top) GetGroupDragPosition()
-    {
-        var hwnd = _hWndSource?.Handle ?? IntPtr.Zero;
-        if (hwnd == IntPtr.Zero
-            || !WindowNativeMethods.GetWindowRect(hwnd, out var rect))
-        {
-            return (Left, Top);
-        }
-
-        var scale = GetCurrentDpiScale();
-        return (rect.Left / scale, rect.Top / scale);
-    }
-
-    /// <summary>
-    /// 批量拖动**结束时**把 HWND 的实际位置同步回 WPF 的 <see cref="Window.Left"/>/<see cref="Window.Top"/>。
-    ///
-    /// 拖动期间为了性能绕过了属性写入（见 <see cref="SetGroupDragPosition"/>），
-    /// 但属性里的旧值一旦被后续逻辑读到就会算错位置（尤其是落库）。
-    /// 这里把最终位置写回 —— 因为 HWND 已经在那里，WPF 会发现"目标位置与当前一致"
-    /// 而**不再产生多余的 SetWindowPos**，只更新内部缓存与依赖属性。
-    /// </summary>
-    internal void SyncPositionFromWindow()
-    {
-        var (left, top) = GetGroupDragPosition();
-        Left = left;
-        Top = top;
-    }
-
-    /// <summary>窗口当前所在显示器的 DPI 缩放（取不到时退回系统值）。</summary>
-    private double GetCurrentDpiScale()
-    {
-        var hwnd = _hWndSource?.Handle ?? IntPtr.Zero;
-        if (hwnd != IntPtr.Zero)
-        {
-            var dpi = WindowNativeMethods.GetDpiForWindow(hwnd);
-            if (dpi > 0)
-            {
-                return dpi / 96.0;
-            }
-        }
-
-        return MonitorHelper.SystemDpiScale();
-    }
-
-    /// <summary>批量拖动中的对齐吸附位移（保留给旧调用点，内部已合并进单次写入）。</summary>
-    internal void NudgeGroupDragX(double dx) => Left += dx;
-
-    /// <summary>批量拖动中的对齐吸附位移（保留给旧调用点，内部已合并进单次写入）。</summary>
-    internal void NudgeGroupDragY(double dy) => Top += dy;
 
     /// <summary>
     /// 把正在跑的高度动画固化成当前值。
@@ -360,6 +186,10 @@ public partial class NoteWindow : Window, NoteLineEditor.IHost
     /// `BeginAnimation(HeightProperty, null)` 是 WPF 里"停止动画并保留当前值"的
     /// 标准写法：直接传 null 会把动画移除，属性回落到基值 —— 那会让窗口瞬间弹回
     /// 展开高度。必须传 null 的**同时**先手工把当前（动画中的）值写进基值。
+    ///
+    /// 🔴 拖动开始前必须调用：折叠胶囊的窗口高度是一条 200ms 动画，动画在跑时
+    /// `Height` 读到的是**动画中间值**，而对齐计算要拿 `Height` 算可见矩形，
+    /// 读到中间值就会算出一个不存在的尺寸，吸附位置随之偏掉。
     /// </summary>
     private void FreezeHeightAnimation()
     {

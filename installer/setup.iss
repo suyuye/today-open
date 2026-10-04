@@ -1,8 +1,8 @@
-; 今日营业中 v1.5.5 安装包脚本
+; 今日营业中 v1.5.6 安装包脚本
 ; 使用 Inno Setup 6 编译
 
 #define MyAppName "今日营业中"
-#define MyAppVersion "1.5.5"
+#define MyAppVersion "1.5.6"
 #define MyAppPublisher "苏羽野"
 #define MyAppExeName "今日营业中.exe"
 #define MyAppDataDir "今日营业中"
@@ -24,7 +24,7 @@ DisableProgramGroupPage=yes
 
 ; 输出
 OutputDir=D:\PJ\Note\release
-OutputBaseFilename=今日营业中_v1.5.5_安装包
+OutputBaseFilename=今日营业中_v1.5.6_安装包
 SetupIconFile=D:\PJ\Note\src\Note.App\Assets\app.ico
 
 ; 压缩
@@ -46,7 +46,7 @@ UninstallDisplayIcon={app}\{#MyAppExeName}
 UninstallDisplayName={#MyAppName}
 
 ; 文件版本信息
-VersionInfoVersion=1.5.5.0
+VersionInfoVersion=1.5.6.0
 VersionInfoCompany=苏羽野
 VersionInfoDescription=今日营业中 - 桌面便签软件
 VersionInfoCopyright=Copyright (C) 2026 苏羽野

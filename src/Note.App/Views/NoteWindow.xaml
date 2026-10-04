@@ -858,17 +858,6 @@
                     Background="#E8902A" Opacity="0.9" Visibility="Collapsed"/>
         </Grid>
 
-        <!-- ============ 框选高亮（被框选批量拖动时显示） ============
-             只在桌面框选命中时出现，套在便签可见内容外圈。
-             用独立的琥珀色描边而不是改便签底色：便签颜色是用户选的，
-             不该被临时的"选中"状态覆盖掉。
-             与贴边提示同色系，让"选中"这件事在同一套视觉语言里。
-             IsHitTestVisible=False：绝不干扰鼠标（框选判定全部来自全局钩子）。 -->
-        <Border x:Name="MarqueeHighlight"
-                Margin="12" CornerRadius="{Binding NoteCornerRadius}"
-                BorderBrush="#E8902A" BorderThickness="2"
-                IsHitTestVisible="False" Visibility="Collapsed"/>
-
         <!-- 四边缩放手柄（透明 6px） -->
         <Thumb Style="{StaticResource ResizeThumbStyle}" Tag="W" Cursor="SizeWE"
                HorizontalAlignment="Left" VerticalAlignment="Stretch" Width="6"

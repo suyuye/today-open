@@ -62,16 +62,6 @@ public partial class NoteWindow
     /// </summary>
     private void DragWindowWithLift()
     {
-        // 🔴 「这一张已被框选选中」时**不要**走单张拖动：用户的意图是整组拖动，
-        // 而框选协调器已经在处理这个手势了。若这里照常 DragMove，
-        // 被按住的这张会被两条路径同时移动，位移比组内其他成员多一截 ——
-        // 表现为"框选拖动后便签之间错位了"（实测多 11 物理像素）。
-        // 详见 IsSelectedByMarqueeProvider 的说明。
-        if (IsSelectedByMarqueeProvider?.Invoke(this) == true)
-        {
-            return;
-        }
-
         SetShadowLifted(true);
         _isDragging = true;
         try
@@ -104,8 +94,7 @@ public partial class NoteWindow
         // 恰好让便签进入了吸附区间，这次吸附就永远不会被评估 ——
         // 表现为"明明就差 2 像素，却没吸上去"（松手即定型，事后无人再算）。
         //
-        // 所以松手时用**当前最终位置**再算一次，把该吸的吸上。与批量拖动路径
-        // （MarqueeSelector.EndGroupDrag）保持同款语义。
+        // 所以松手时用**当前最终位置**再算一次，把该吸的吸上。
         ApplyAlignSnap();
 
         // 先收起预览提示，再判定最终结果（避免"提示要吸"和"实际没吸"同时显示）
@@ -198,22 +187,6 @@ public partial class NoteWindow
     }
 
     /// <summary>
-    /// 【批量拖动专用】显示对齐提示线。
-    ///
-    /// 批量拖动期间位置由 <see cref="SetGroupDragPosition"/> 直写 HWND，
-    /// WPF 的 <see cref="Window.Left"/>/<see cref="Window.Top"/> 已不是真相，
-    /// 所以提示线的坐标基准必须由调用方（框选协调器）显式传入。
-    /// </summary>
-    internal void ShowAlignGuidesForGroup(NoteAlignGeometry.AlignResult result)
-    {
-        var (left, top) = GetGroupDragPosition();
-        ShowAlignGuides(result, left, top);
-    }
-
-    /// <summary>【批量拖动专用】隐藏对齐提示线。</summary>
-    internal void HideAlignGuidesForGroup() => HideAlignGuides();
-
-    /// <summary>
     /// 收集桌面上**其它**便签的可见内容矩形，供对齐计算用。
     ///
     /// 通过注入的提供者拿（而不是自己去翻窗口列表），是为了让便签窗口
@@ -234,26 +207,15 @@ public partial class NoteWindow
     ///
     /// 线只画在**本窗口范围内**：跨窗口画线需要额外的覆盖层，代价大且收益有限；
     /// 用户看到"我这里有一条线跟对方齐平"就够理解发生了什么。
-    ///
-    /// <paramref name="originLeft"/>/<paramref name="originTop"/> 是"本窗口当前左上角"的口径。
-    /// 单张拖动时就是 <see cref="Window.Left"/>/<see cref="Window.Top"/>；
-    /// **批量拖动时必须由调用方传入** —— 那时位置是直接写 HWND 的（见
-    /// <see cref="SetGroupDragPosition"/>），WPF 属性不再是真相，用它算出的线会偏。
     /// </summary>
-    private void ShowAlignGuides(
-        NoteAlignGeometry.AlignResult result,
-        double? originLeft = null,
-        double? originTop = null)
+    private void ShowAlignGuides(NoteAlignGeometry.AlignResult result)
     {
-        var left = originLeft ?? Left;
-        var top = originTop ?? Top;
-
         if (AlignGuideVertical is not null)
         {
             if (result.AlignedX)
             {
                 // 竖线：画在对齐的 X 位置（换算成本窗口局部坐标）
-                var x = result.GuideLeft - left;
+                var x = result.GuideLeft - Left;
                 AlignGuideVertical.Margin = new Thickness(x, 0, 0, 0);
                 AlignGuideVertical.Visibility = Visibility.Visible;
             }
@@ -267,7 +229,7 @@ public partial class NoteWindow
         {
             if (result.AlignedY)
             {
-                var y = result.GuideTop - top;
+                var y = result.GuideTop - Top;
                 AlignGuideHorizontal.Margin = new Thickness(0, y, 0, 0);
                 AlignGuideHorizontal.Visibility = Visibility.Visible;
             }

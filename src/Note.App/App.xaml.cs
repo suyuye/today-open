@@ -38,23 +38,6 @@ public partial class App : Application
     // 持有窗口服务引用，便于退出时关闭所有便签窗口
     private IWindowService? _windowService;
 
-    // 桌面框选批量拖动的协调器（内含全局鼠标钩子，退出时必须释放）
-    private MarqueeSelector? _marqueeSelector;
-
-    /// <summary>
-    /// 🔴 **仅供自动化验证**：把框选协调器以「可被合成输入驱动」的方式装上。
-    ///
-    /// 本机（以及很多无真实鼠标的环境）里，自动化脚本只能产生 <c>mouse_event</c> 合成输入，
-    /// 而合成输入**不会**进入按线程过滤的低级钩子链 —— 于是框选在自动化里无法被驱动。
-    /// 打开这个开关后，钩子按「接受任何线程」安装，验证脚本就能真实地点到钩子、
-    /// 走进与线上完全相同的状态机。
-    ///
-    /// 由环境变量 <c>TODAY_OPEN_AUTOMATION=1</c> 打开，正常启动永远是 false。
-    /// 覆盖层也必须一并关掉：它是个全屏置顶窗口，会挡住验证脚本读取便签窗口的边界。
-    /// </summary>
-    private static bool IsAutomationMode =>
-        Environment.GetEnvironmentVariable("TODAY_OPEN_AUTOMATION") == "1";
-
     // 持有设置与自启服务引用，便于启动时同步注册表、设置变更时联动
     private ISettingsService? _settingsService;
     private IAutostartService? _autostartService;
@@ -124,8 +107,8 @@ public partial class App : Application
             // 注册全局快捷键并绑定触发路由
             InitializeHotkeys(Services);
 
-            // 桌面框选批量拖动：装全局鼠标钩子 + 注入便签间对齐所需的位置查询
-            InitializeMarqueeSelection(Services);
+            // 便签间边缘对齐吸附：注入「其它便签在哪」的查询回调
+            InitializeNoteAlignment(Services);
 
             // 同步开机自启设置到注册表，并订阅设置变更联动
             InitializeAutostart(Services);
@@ -266,18 +249,18 @@ public partial class App : Application
     }
 
     /// <summary>
-    /// 初始化「桌面框选批量拖动」。
+    /// 注入「便签间边缘对齐吸附」所需的「别人都在哪」查询回调。
     ///
-    /// 除了启动协调器，还要给便签窗口注入「别人都在哪」的查询回调 ——
-    /// 拖动时的便签间对齐吸附需要它。放在这里注入而不是让 NoteWindow 直接
-    /// 依赖 IWindowService，是为了保持窗口类的单向依赖。
+    /// 拖动便签靠近其它便签时，要在 8 DIP 内把边缘吸齐（见 <c>NoteAlignGeometry</c>）。
+    /// 这个回调给便签窗口提供"其它便签的可见内容矩形"。
+    ///
+    /// 做成注入而不是让 <see cref="NoteWindow"/> 直接依赖 <see cref="IWindowService"/>，
+    /// 是为了保持窗口类的单向依赖（窗口不该反过来知道窗口管理器）。
     /// </summary>
-    private void InitializeMarqueeSelection(IServiceProvider services)
+    private void InitializeNoteAlignment(IServiceProvider services)
     {
         var windowService = services.GetRequiredService<IWindowService>();
 
-        // 便签窗口问「其它便签的可见内容矩形」时的实现：
-        // 遍历当前打开的便签，扣掉各自的阴影边距后返回。
         NoteWindow.OtherNoteRectsProvider = self =>
         {
             var rects = new List<Rect>();
@@ -289,6 +272,8 @@ public partial class App : Application
                     continue;
                 }
 
+                // 扣掉阴影边距：对齐判定用的是「可见内容矩形」，
+                // 拿含透明阴影的外框去对齐，两张便签的可见边之间会永远差一个边距。
                 var margin = other.ShadowMarginValue;
                 rects.Add(new Rect(
                     other.Left + margin,
@@ -299,33 +284,6 @@ public partial class App : Application
 
             return rects;
         };
-
-        _marqueeSelector = new MarqueeSelector(windowService);
-
-        // 便签在决定要不要走自己的拖拽前会问一句「我是不是已被框选选中」。
-        // 选中了就让路给统一拖动 —— 否则被按住的那张会被两条路径同时移动、
-        // 位移比组内其他成员多一截（详见 NoteWindow.IsSelectedByMarqueeProvider）。
-        NoteWindow.IsSelectedByMarqueeProvider = self => _marqueeSelector!.IsSelected(self);
-
-        if (IsAutomationMode)
-        {
-            // 验证模式：
-            //  - 覆盖层不显示（全屏置顶窗口会干扰脚本读便签窗口边界）
-            //  - 钩子按"接受任何线程"安装，使合成输入也能驱动状态机
-            //  - 坐标换算注入：脚本给的是"便签窗口坐标系"的值，
-            //    这里除以系统 DPI 缩放，等价于真实鼠标的物理像素→DIP 换算
-            var scale = Helpers.MonitorHelper.SystemDpiScale();
-            _marqueeSelector.ShowOverlayForTest = false;
-            _marqueeSelector.AutomationDipScale = scale;
-            _marqueeSelector.ScreenPointConverter = p =>
-                new Point(p.X / scale, p.Y / scale);
-            _marqueeSelector.InstallHookForAutomation();
-            LogHelper.Warning($"⚠️ 框选协调器以【自动化验证模式】启动（坐标缩放 {scale}）");
-        }
-        else
-        {
-            _marqueeSelector.Start();
-        }
     }
 
     /// <summary>同步开机自启设置到注册表，并订阅设置变更以联动更新。</summary>
@@ -481,11 +439,7 @@ public partial class App : Application
         // 关闭所有便签窗口（OnClosing 立即保存内容与位置，等待防抖的未保存内容也会落库）
         _windowService?.CloseAllNoteWindows();
 
-        // 🔴 必须卸载全局鼠标钩子：留着会让钩子继续挂在系统输入链路上，
-        // 既影响整机输入，也可能拖住进程无法正常退出。
-        _marqueeSelector?.Dispose();
         NoteWindow.OtherNoteRectsProvider = null;
-        NoteWindow.IsSelectedByMarqueeProvider = null;
 
         _hotkeyService?.UnregisterAll();
         _trayService?.Remove();
