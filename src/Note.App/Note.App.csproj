@@ -11,9 +11,9 @@
     <LangVersion>latest</LangVersion>
 
     <!-- 版本信息与元数据 -->
-    <Version>1.5.4</Version>
-    <AssemblyVersion>1.5.4.0</AssemblyVersion>
-    <FileVersion>1.5.4.0</FileVersion>
+    <Version>1.5.5</Version>
+    <AssemblyVersion>1.5.5.0</AssemblyVersion>
+    <FileVersion>1.5.5.0</FileVersion>
     <Product>今日营业中</Product>
     <Company>苏羽野</Company>
     <Copyright>Copyright © 2026 苏羽野</Copyright>
