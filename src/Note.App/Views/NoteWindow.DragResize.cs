@@ -76,6 +76,12 @@ public partial class NoteWindow
         _isDragging = true;
         try
         {
+            // 🔴 冻结正在跑的高度动画再开始拖。
+            // 折叠胶囊的窗口高度是一条 200ms 动画，动画在跑时 `Height` 读到的是**动画中间值**
+            // —— 对齐计算要拿 `Height` 算可见矩形，读到中间值就会算出一个不存在的尺寸，
+            // 吸附位置随之偏掉。固化成当前值后再拖，几何才稳定。
+            FreezeHeightAnimation();
+
             // DragMove 是**同步阻塞**的，拖动期间无法在里面插入回调。
             // 所以用一个高频定时器并行采样窗口位置，实时刷新吸附预览 ——
             // 这是唯一能在"用户还在拖"的时候给出视觉反馈的办法。
@@ -89,6 +95,18 @@ public partial class NoteWindow
             SetShadowLifted(false);
             _isDragging = false;
         }
+
+        // 🔴 松手前补算最后一帧对齐。
+        //
+        // 对齐是在 `_snapPreviewTimer`（40ms）里做的 —— 靠"拖动过程中周期性采样"
+        // 给出实时停顿感。但它有个必然的盲区：**用户在哪一帧松手是随机的**，
+        // 若最后一次采样落在松手之前的某个中间位置，而最后那几像素的移动
+        // 恰好让便签进入了吸附区间，这次吸附就永远不会被评估 ——
+        // 表现为"明明就差 2 像素，却没吸上去"（松手即定型，事后无人再算）。
+        //
+        // 所以松手时用**当前最终位置**再算一次，把该吸的吸上。与批量拖动路径
+        // （MarqueeSelector.EndGroupDrag）保持同款语义。
+        ApplyAlignSnap();
 
         // 先收起预览提示，再判定最终结果（避免"提示要吸"和"实际没吸"同时显示）
         _dockController.ClearSnapPreview();
@@ -129,13 +147,14 @@ public partial class NoteWindow
     /// 需求要的是「靠近时出现明显的停顿感」—— 这只有在拖动**过程中**把窗口吸过去
     /// 才能获得；若等松手再对齐，用户感受不到"吸住"这个瞬间。
     ///
-    /// 🔴 **只对常规形态生效**。折叠胶囊的语义是"收纳"，用户拖动它就是在摆一个胶囊，
-    /// 拿胶囊的边去跟别的便签对齐会让它跳到奇怪的位置；极简磁贴同理。
+    /// **形态无关**：常规便签、极简磁贴、折叠胶囊都参与对齐。
+    /// 对齐只看矩形边缘，形态只影响矩形尺寸 —— 胶囊也一样有左/右/上/下四条边，
+    /// 用户把两个胶囊摆齐是同样自然的需求。唯一例外是**锁定的便签**：
+    /// 锁定语义就是"别动它"，此时连对齐提示线也不显示。
     /// </summary>
     private void ApplyAlignSnap()
     {
-        // 折叠/极简不参与对齐吸附
-        if (_viewModel.IsCompactDisplay || _viewModel.IsLocked)
+        if (_viewModel.IsLocked)
         {
             HideAlignGuides();
             return;
@@ -179,6 +198,22 @@ public partial class NoteWindow
     }
 
     /// <summary>
+    /// 【批量拖动专用】显示对齐提示线。
+    ///
+    /// 批量拖动期间位置由 <see cref="SetGroupDragPosition"/> 直写 HWND，
+    /// WPF 的 <see cref="Window.Left"/>/<see cref="Window.Top"/> 已不是真相，
+    /// 所以提示线的坐标基准必须由调用方（框选协调器）显式传入。
+    /// </summary>
+    internal void ShowAlignGuidesForGroup(NoteAlignGeometry.AlignResult result)
+    {
+        var (left, top) = GetGroupDragPosition();
+        ShowAlignGuides(result, left, top);
+    }
+
+    /// <summary>【批量拖动专用】隐藏对齐提示线。</summary>
+    internal void HideAlignGuidesForGroup() => HideAlignGuides();
+
+    /// <summary>
     /// 收集桌面上**其它**便签的可见内容矩形，供对齐计算用。
     ///
     /// 通过注入的提供者拿（而不是自己去翻窗口列表），是为了让便签窗口
@@ -199,15 +234,26 @@ public partial class NoteWindow
     ///
     /// 线只画在**本窗口范围内**：跨窗口画线需要额外的覆盖层，代价大且收益有限；
     /// 用户看到"我这里有一条线跟对方齐平"就够理解发生了什么。
+    ///
+    /// <paramref name="originLeft"/>/<paramref name="originTop"/> 是"本窗口当前左上角"的口径。
+    /// 单张拖动时就是 <see cref="Window.Left"/>/<see cref="Window.Top"/>；
+    /// **批量拖动时必须由调用方传入** —— 那时位置是直接写 HWND 的（见
+    /// <see cref="SetGroupDragPosition"/>），WPF 属性不再是真相，用它算出的线会偏。
     /// </summary>
-    private void ShowAlignGuides(NoteAlignGeometry.AlignResult result)
+    private void ShowAlignGuides(
+        NoteAlignGeometry.AlignResult result,
+        double? originLeft = null,
+        double? originTop = null)
     {
+        var left = originLeft ?? Left;
+        var top = originTop ?? Top;
+
         if (AlignGuideVertical is not null)
         {
             if (result.AlignedX)
             {
                 // 竖线：画在对齐的 X 位置（换算成本窗口局部坐标）
-                var x = result.GuideLeft - Left;
+                var x = result.GuideLeft - left;
                 AlignGuideVertical.Margin = new Thickness(x, 0, 0, 0);
                 AlignGuideVertical.Visibility = Visibility.Visible;
             }
@@ -221,7 +267,7 @@ public partial class NoteWindow
         {
             if (result.AlignedY)
             {
-                var y = result.GuideTop - Top;
+                var y = result.GuideTop - top;
                 AlignGuideHorizontal.Margin = new Thickness(0, y, 0, 0);
                 AlignGuideHorizontal.Visibility = Visibility.Visible;
             }

@@ -235,4 +235,69 @@ public class NoteAlignGeometryTests
         Assert.Equal(0, result.Dx);
         Assert.Equal(0, result.Dy);
     }
+
+    // ===== 折叠胶囊形态（矮矩形）=====
+    //
+    // 对齐本身与形态无关，只看矩形四条边。但胶囊是**极扁**的矩形
+    // （约 200×32），是四条边里"上下边离得最近"的极端情况 ——
+    // 上边与下边只隔 32，很容易出现上边差 5、下边差 27 这种
+    // 「两个候选都进了阈值视野」的局面，必须确认挑的是更近的那个。
+
+    /// <summary>折叠胶囊：200 宽、32 高，左上角在 (300, 200)。</summary>
+    private static readonly Rect Capsule = new(300, 200, 200, 32);
+
+    [Fact]
+    public void Compute_Capsule_TopEdgeAlignsToOtherCapsule()
+    {
+        // 同样尺寸的两个胶囊（高都是 32），上边差 4、下边也差 4（平手）
+        // → 取先遍历到的"上对上"，GuideTop 落在对方上边 204
+        var other = new Rect(900, 204, 200, 32);
+
+        var result = NoteAlignGeometry.Compute(Capsule, new[] { other });
+
+        Assert.True(result.AlignedY);
+        Assert.Equal(4, result.Dy);        // 往下挪 4 让上边齐平
+        Assert.Equal(204, result.GuideTop);
+    }
+
+    [Fact]
+    public void Compute_Capsule_PrefersNearerEdgeWhenTopAndBottomCompete()
+    {
+        // 对方是常规便签（高 80，上边 202、下边 282）：
+        // 胶囊上边差 2、下边差 50 —— 胶囊上下边只隔 32，两个候选都会进循环，
+        // 必须挑差 2 的那个（而不是因为"下边更靠下"就选它）
+        var other = new Rect(900, 202, 100, 80);
+
+        var result = NoteAlignGeometry.Compute(Capsule, new[] { other });
+
+        Assert.True(result.AlignedY);
+        Assert.Equal(2, result.Dy);        // 近的是上边，不能挑下边那个 50
+        Assert.Equal(202, result.GuideTop);
+    }
+
+    [Fact]
+    public void Compute_Capsule_LeftEdgeAlignsAgainstNormalNote()
+    {
+        // 胶囊左边界 300，常规便签左边界 303 → 差 3
+        var other = new Rect(303, 800, 100, 80);
+
+        var result = NoteAlignGeometry.Compute(Capsule, new[] { other });
+
+        Assert.True(result.AlignedX);
+        Assert.Equal(3, result.Dx);
+        Assert.Equal(303, result.GuideLeft);
+    }
+
+    [Fact]
+    public void Compute_CapsuleAgainstCapsule_AlignedByLeftEdgeOnly()
+    {
+        // 两个胶囊左边界差 5；纵向差 200（远超阈值）→ 只吸横向
+        var other = new Rect(305, 700, 200, 32);
+
+        var result = NoteAlignGeometry.Compute(Capsule, new[] { other });
+
+        Assert.True(result.AlignedX);
+        Assert.False(result.AlignedY);
+        Assert.Equal(5, result.Dx);
+    }
 }

@@ -65,8 +65,37 @@ internal sealed class MarqueeSelector : IDisposable
     /// <summary>框选起点（虚拟桌面 DIP 坐标）。</summary>
     private Point _startDip;
 
-    /// <summary>统一拖动涉及的便签窗口（含起始位置，用于绝对位移与取消回滚）。</summary>
-    private readonly List<(NoteWindow Window, double Left, double Top)> _dragTargets = new();
+    /// <summary>
+    /// 统一拖动涉及的便签窗口（含起始位置与尺寸快照）。
+    ///
+    /// **为什么要连尺寸一起快照**：对齐计算需要每张便签的「可见内容矩形」，
+    /// 而拖动期间位置是直接写 HWND 的（WPF 属性不是真相），
+    /// 每帧去问一次窗口既慢又容易不一致。起始尺寸在拖动中不会变
+    /// （拖动只改位置），一次快照即可。
+    /// </summary>
+    private readonly List<GroupDragTarget> _dragTargets = new();
+
+    /// <summary>统一拖动中的一张便签：窗口 + 起始几何（DIP）。</summary>
+    private readonly record struct GroupDragTarget(
+        NoteWindow Window,
+        double Left,
+        double Top,
+        double Width,
+        double Height,
+        double Margin);
+
+    /// <summary>
+    /// 拖动开始时冻结的「组外便签可见矩形」。
+    ///
+    /// 组外便签在本次拖动中不会移动，所以只需快照一次 ——
+    /// 避免每帧枚举全部窗口、逐个扣阴影边距（拖动七八张时这部分开销可观）。
+    /// 拖动启动时重建，结束清空。
+    /// </summary>
+    private readonly List<Rect> _frozenOthers = new();
+
+    /// <summary>上一次已经下发给窗口的位移，用于跳过"鼠标微抖"产生的无意义重写。</summary>
+    private double _appliedDx;
+    private double _appliedDy;
 
     /// <summary>
     /// 统一拖动的**起点指针位置（DIP）**。位移一律由「当前位置 - 起点」算出，
@@ -354,13 +383,38 @@ internal sealed class MarqueeSelector : IDisposable
         foreach (var window in _selected)
         {
             var origin = window.ResolveGroupDragOrigin();
-            _dragTargets.Add((window, origin.Left, origin.Top));
+            var margin = window.ShadowMarginValue;
+            _dragTargets.Add(new GroupDragTarget(
+                window,
+                origin.Left,
+                origin.Top,
+                window.Width,
+                window.Height,
+                margin));
         }
+
+        // 冻结组外便签的矩形：本次拖动中它们不会动，一次算完即可。
+        // 🔴 这是流畅度的关键之一 —— 否则每帧都要枚举全部窗口 + 逐个扣阴影边距。
+        _frozenOthers.Clear();
+        foreach (var window in EnumerateNoteWindows())
+        {
+            if (_dragTargets.Any(t => ReferenceEquals(t.Window, window)))
+            {
+                continue;
+            }
+
+            _frozenOthers.Add(VisibleRectOf(window));
+        }
+
+        _appliedDx = 0;
+        _appliedDy = 0;
 
         _isGroupDragging = _dragTargets.Count > 0;
         _dragStartDip = ToWindowDip(GetCursorPhysical());
 
-        LogHelper.Debug($"开始统一拖动：{_dragTargets.Count} 张便签，起点=({_dragStartDip.X:F0},{_dragStartDip.Y:F0})");
+        LogHelper.Debug(
+            $"开始统一拖动：{_dragTargets.Count} 张便签，组外参照 {_frozenOthers.Count} 张，" +
+            $"起点=({_dragStartDip.X:F0},{_dragStartDip.Y:F0})");
     }
 
     /// <summary>
@@ -372,8 +426,14 @@ internal sealed class MarqueeSelector : IDisposable
     ///
     /// 所有便签按**同一位移**移动，保持相对位置 —— 与框选桌面图标一致的心智模型。
     ///
-    /// 移动后再做一次**便签间对齐吸附**：拖动组里"最靠左的那张"负责与外部便签对齐，
-    /// 其余成员保持与它的相对位置同步吸附。这样框选拖动也能享受对齐的便利。
+    /// 🔴 **流畅度要点（这一段的写法都是为此服务）**：
+    /// 1. **每帧只写一次位置**。对齐偏移不再用「先移动、再 Nudge 一次」的两段式，
+    ///    而是先算出含吸附的最终坐标，再一次性下发 —— 每张便签每帧只产生**一次**
+    ///    <c>SetWindowPos</c>（见 <see cref="NoteWindow.SetGroupDragPosition"/>）。
+    /// 2. **组外便签矩形在拖动开始时冻结一次**。拖动期间不参与移动的那些便签
+    ///    本来就不会动，没必要每帧重新枚举全部窗口 + 扣阴影边距。
+    /// 3. **位移小于阈值直接返回**。鼠标微抖在 150% DPI 下很常见，
+    ///    逐个便签重写一遍位置纯属浪费。
     /// </summary>
     private void UpdateGroupDrag(Point currentDip)
     {
@@ -385,92 +445,106 @@ internal sealed class MarqueeSelector : IDisposable
         var dx = currentDip.X - _dragStartDip.X;
         var dy = currentDip.Y - _dragStartDip.Y;
 
-        if (Math.Abs(dx) < 0.5 && Math.Abs(dy) < 0.5)
+        // 位移阈值：半个 DIP 以下视为抖动。既省掉无意义的重写，
+        // 也不会让用户感觉到"跟手有延迟"（0.5 DIP 在 150% DPI 下不足 1 物理像素）。
+        if (Math.Abs(dx - _appliedDx) < 0.5 && Math.Abs(dy - _appliedDy) < 0.5)
         {
             return;
         }
 
-        // 以"起始位置 + 位移"设置绝对坐标，避免累计误差
-        foreach (var (window, originLeft, originTop) in _dragTargets)
+        // ---- 第一步：算出整组的"干净位置"（尚未吸附）----
+        // 只对**领队**做一次对齐计算，把结果偏移施加给全组，
+        // 保证组内相对位置绝对不变（整组像一个整体被吸过去）。
+        var snapDx = 0.0;
+        var snapDy = 0.0;
+
+        if (_frozenOthers.Count > 0 && _dragTargets.Count > 0)
         {
-            window.SetGroupDragPosition(originLeft + dx, originTop + dy);
-        }
+            var lead = _dragTargets[0];
+            var selfRect = new Rect(
+                lead.Left + dx + lead.Margin,
+                lead.Top + dy + lead.Margin,
+                Math.Max(1, lead.Width - lead.Margin * 2),
+                Math.Max(1, lead.Height - lead.Margin * 2));
 
-        ApplyGroupAlignSnap();
-    }
-
-    /// <summary>
-    /// 批量拖动时的对齐吸附。
-    ///
-    /// 做法：只拿**组内第一张**便签去和组外的便签算对齐偏移，然后把整个偏移
-    /// 同样施加给全组 —— 这样组内相对位置不变，整组像一个整体被吸过去。
-    ///
-    /// 为什么不在组内成员之间互相对齐：它们本来就保持着用户摆好的相对位置，
-    /// 内部再互相吸会破坏这个布局。
-    /// </summary>
-    private void ApplyGroupAlignSnap()
-    {
-        if (_dragTargets.Count == 0)
-        {
-            return;
-        }
-
-        var lead = _dragTargets[0].Window;
-
-        // 折叠/极简形态不参与对齐（与单张拖动路径的规则保持一致）
-        var others = new List<Rect>();
-        foreach (var window in EnumerateNoteWindows())
-        {
-            if (_dragTargets.Any(t => ReferenceEquals(t.Window, window)))
-            {
-                continue;
-            }
-
-            others.Add(VisibleRectOf(window));
-        }
-
-        if (others.Count == 0)
-        {
-            return;
-        }
-
-        var self = VisibleRectOf(lead);
-        var result = NoteAlignGeometry.Compute(self, others);
-        if (!result.AlignedX && !result.AlignedY)
-        {
-            return;
-        }
-
-        // 把吸附偏移同样施加给全组，保持组内相对位置。
-        //
-        // ⚠️ 这里**不要**把偏移写回 _dragStartDip ——
-        // 每帧都是从「起始位置 + 指针位移」重新算出干净位置再吸附，
-        // 这是个幂等过程：吸附到对齐位之后，下一帧再算出的偏移自然是 0，不会累积。
-        // 若把偏移写回起点，反而会让整组随每帧漂移（拖得越久偏得越远）。
-        foreach (var (window, _, _) in _dragTargets)
-        {
+            var result = NoteAlignGeometry.Compute(selfRect, _frozenOthers);
             if (result.AlignedX)
             {
-                window.NudgeGroupDragX(result.Dx);
+                snapDx = result.Dx;
             }
 
             if (result.AlignedY)
             {
-                window.NudgeGroupDragY(result.Dy);
+                snapDy = result.Dy;
             }
+
+            UpdateAlignGuidesForGroup(result);
         }
+
+        // ---- 第二步：一次性下发最终坐标（每张每帧仅一次 Win32 调用）----
+        foreach (var t in _dragTargets)
+        {
+            t.Window.SetGroupDragPosition(
+                t.Left + dx + snapDx,
+                t.Top + dy + snapDy);
+        }
+
+        _appliedDx = dx;
+        _appliedDy = dy;
     }
 
-    /// <summary>结束拖动：落库位置。保留选中状态，方便用户接着微调。</summary>
+    /// <summary>
+    /// 批量拖动中的对齐提示线。
+    ///
+    /// 提示线画在**领队便签自己的窗口内**（与单张拖动路径同一套机制），
+    /// 位置就是吸附后两条边对齐的那条线。
+    /// </summary>
+    private void UpdateAlignGuidesForGroup(NoteAlignGeometry.AlignResult result)
+    {
+        var lead = _dragTargets.Count > 0 ? _dragTargets[0].Window : null;
+        if (lead is null)
+        {
+            return;
+        }
+
+        if (!result.AlignedX && !result.AlignedY)
+        {
+            lead.HideAlignGuidesForGroup();
+            return;
+        }
+
+        lead.ShowAlignGuidesForGroup(result);
+    }
+
+    /// <summary>结束拖动：把 HWND 位置同步回 WPF 属性，再落库。</summary>
     private void EndGroupDrag()
     {
-        foreach (var (window, _, _) in _dragTargets)
+        // 🔴 松手前必须用**实时光标**补算最后一帧。
+        //
+        // 为什么不能直接用"最后处理过的 mousemove"收尾：
+        // 钩子的 mousemove 经 Dispatcher.BeginInvoke 转投 UI 线程，UI 忙时尾部若干帧
+        // 会被合并/丢弃。丢掉的正是"最后几像素"——表现为松手后便签停在离目标
+        // 差几个像素的地方，而且**恰好躲开对齐阈值**（吸附差 2 DIP 就该吸上，却因
+        // 最后一帧还差 12+ 像素而没判定到对齐区间）。
+        //
+        // EndMarquee() 早就是这么做的（"以松手时的指针位置重算一次最终选框"），
+        // 这里补齐同款语义，保证"松手即到位、该吸的一定吸上"。
+        if (_dragTargets.Count > 0)
         {
-            // 通知 VM 保存新位置（复用便签自身拖动的落库路径）
-            window.CommitPositionAfterGroupDrag();
+            UpdateGroupDrag(ToWindowDip(GetCursorPhysical()));
+        }
+
+        foreach (var t in _dragTargets)
+        {
+            // 🔴 顺序不能颠倒：拖动期间位置是直接写 HWND 的，
+            // 必须先同步回 Left/Top，落库路径（UpdateWindowPosition）读的才是新位置。
+            t.Window.SyncPositionFromWindow();
+            t.Window.HideAlignGuidesForGroup();
+            t.Window.CommitPositionAfterGroupDrag();
         }
 
         _dragTargets.Clear();
+        _frozenOthers.Clear();
         _isGroupDragging = false;
     }
 
@@ -495,7 +569,13 @@ internal sealed class MarqueeSelector : IDisposable
         _isGroupDragging = false;
 
         ClearSelection();
+        foreach (var t in _dragTargets)
+        {
+            t.Window.HideAlignGuidesForGroup();
+        }
+
         _dragTargets.Clear();
+        _frozenOthers.Clear();
         HideOverlay();
     }
 

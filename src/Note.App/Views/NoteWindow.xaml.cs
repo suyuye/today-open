@@ -243,17 +243,115 @@ public partial class NoteWindow : Window, NoteLineEditor.IHost
         return (Left, Top);
     }
 
-    /// <summary>批量拖动中：设置窗口绝对位置。</summary>
+    /// <summary>
+    /// 🔴 **批量拖动专用**：把窗口移到指定位置，且**每帧只产生一次 Win32 调用**。
+    ///
+    /// 为什么不能沿用 <c>Left = x; Top = y;</c>：
+    /// <see cref="Window.Left"/> 与 <see cref="Window.Top"/> 是两个独立的依赖属性，
+    /// 各自 setter 内部都会走一遍 <c>SetWindowPos</c>（经 WPF 的
+    /// <c>UpdateWindowLocation</c>），并各自触发一轮布局失效。
+    /// 于是移动一张便签要**两次**跨进程调用 + 两轮 Measure/Arrange；
+    /// 再叠上对齐吸附的 <see cref="NudgeGroupDragX"/>/<see cref="NudgeGroupDragY"/>，
+    /// 每帧就是 4 次 —— 框选拖动七八张时明显发涩。
+    ///
+    /// 这里改为**直接操作 HWND**：一次 <c>SetWindowPos</c> 同时给出 X/Y，
+    /// 跳过 WPF 布局管线（位置变化本来就与布局无关，窗口是顶级窗口，
+    /// 移动它不需要重新测量内容）。
+    ///
+    /// ⚠️ **代价与配套**：这样做不会同步更新 WPF 的 <see cref="Window.Left"/>/<see cref="Window.Top"/>
+    /// 属性缓存，所以拖动期间**不能**再靠这两个属性读位置
+    /// （详见 <see cref="GetGroupDragPosition"/> 与 <see cref="SyncPositionFromWindow"/>）。
+    /// 拖动结束时由 <see cref="SyncPositionFromWindow"/> 一次性同步回来。
+    ///
+    /// 坐标系：入参是 DIP，调用方（便签虚拟桌面坐标系）与本窗口同屏同缩放，
+    /// 因此按窗口自己的 DPI 换算成物理像素。
+    /// </summary>
     internal void SetGroupDragPosition(double left, double top)
     {
+        var hwnd = _hWndSource?.Handle ?? IntPtr.Zero;
+        if (hwnd == IntPtr.Zero)
+        {
+            // 极端兜底：句柄还没就绪时退回属性路径（正确性优先于性能）
+            Left = left;
+            Top = top;
+            return;
+        }
+
+        var scale = GetCurrentDpiScale();
+        var x = (int)Math.Round(left * scale);
+        var y = (int)Math.Round(top * scale);
+
+        // 只移动、不改尺寸、不激活、不改层级。
+        // 🔴 **不要加 SWP_NOSENDCHANGING**：那会抑制 WM_WINDOWPOSCHANGING，
+        // 而 WPF 的 HwndSource 需要它来感知位置变化、并在跨屏时处理 per-monitor DPI 切换。
+        // 少了它，便签从主屏拖到副屏（两者缩放不同）后会保持旧缩放尺寸。
+        WindowNativeMethods.SetWindowPos(
+            hwnd,
+            IntPtr.Zero,
+            x,
+            y,
+            0,
+            0,
+            WindowNativeMethods.SWP_NOSIZE
+                | WindowNativeMethods.SWP_NOZORDER
+                | WindowNativeMethods.SWP_NOACTIVATE);
+    }
+
+    /// <summary>
+    /// 批量拖动期间**读**窗口位置。
+    ///
+    /// 因为 <see cref="SetGroupDragPosition"/> 走的是 HWND 直写，
+    /// WPF 的 <see cref="Window.Left"/>/<see cref="Window.Top"/> 已不再可信 ——
+    /// 从窗口句柄实时取物理位置再换算回 DIP，才是拖动中的真相。
+    /// </summary>
+    internal (double Left, double Top) GetGroupDragPosition()
+    {
+        var hwnd = _hWndSource?.Handle ?? IntPtr.Zero;
+        if (hwnd == IntPtr.Zero
+            || !WindowNativeMethods.GetWindowRect(hwnd, out var rect))
+        {
+            return (Left, Top);
+        }
+
+        var scale = GetCurrentDpiScale();
+        return (rect.Left / scale, rect.Top / scale);
+    }
+
+    /// <summary>
+    /// 批量拖动**结束时**把 HWND 的实际位置同步回 WPF 的 <see cref="Window.Left"/>/<see cref="Window.Top"/>。
+    ///
+    /// 拖动期间为了性能绕过了属性写入（见 <see cref="SetGroupDragPosition"/>），
+    /// 但属性里的旧值一旦被后续逻辑读到就会算错位置（尤其是落库）。
+    /// 这里把最终位置写回 —— 因为 HWND 已经在那里，WPF 会发现"目标位置与当前一致"
+    /// 而**不再产生多余的 SetWindowPos**，只更新内部缓存与依赖属性。
+    /// </summary>
+    internal void SyncPositionFromWindow()
+    {
+        var (left, top) = GetGroupDragPosition();
         Left = left;
         Top = top;
     }
 
-    /// <summary>批量拖动中的对齐吸附位移。</summary>
+    /// <summary>窗口当前所在显示器的 DPI 缩放（取不到时退回系统值）。</summary>
+    private double GetCurrentDpiScale()
+    {
+        var hwnd = _hWndSource?.Handle ?? IntPtr.Zero;
+        if (hwnd != IntPtr.Zero)
+        {
+            var dpi = WindowNativeMethods.GetDpiForWindow(hwnd);
+            if (dpi > 0)
+            {
+                return dpi / 96.0;
+            }
+        }
+
+        return MonitorHelper.SystemDpiScale();
+    }
+
+    /// <summary>批量拖动中的对齐吸附位移（保留给旧调用点，内部已合并进单次写入）。</summary>
     internal void NudgeGroupDragX(double dx) => Left += dx;
 
-    /// <summary>批量拖动中的对齐吸附位移。</summary>
+    /// <summary>批量拖动中的对齐吸附位移（保留给旧调用点，内部已合并进单次写入）。</summary>
     internal void NudgeGroupDragY(double dy) => Top += dy;
 
     /// <summary>

@@ -18,7 +18,18 @@ internal static class WindowNativeMethods
     internal static readonly IntPtr HWND_TOP = IntPtr.Zero;
     internal const uint SWP_NOSIZE = 0x0001;
     internal const uint SWP_NOMOVE = 0x0002;
+    internal const uint SWP_NOZORDER = 0x0004;
     internal const uint SWP_NOACTIVATE = 0x0010;
+
+    /// <summary>窗口矩形（物理像素，屏幕坐标）。</summary>
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct RECT
+    {
+        public int Left;
+        public int Top;
+        public int Right;
+        public int Bottom;
+    }
 
     internal delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
 
@@ -44,6 +55,16 @@ internal static class WindowNativeMethods
     [DllImport("user32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     internal static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int x, int y, int cx, int cy, uint uFlags);
+
+    /// <summary>
+    /// 取窗口的**物理像素**屏幕矩形（含非客户区）。
+    ///
+    /// 口径说明：这是 Win32 的真实窗口外框。批量拖动期间位置是直接写 HWND 的，
+    /// WPF 的 <c>Left/Top</c> 属性不再是真相 —— 需要读实际位置时用这个接口。
+    /// </summary>
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
 
     /// <summary>获取窗口扩展样式（32/64 位自适应）。</summary>
     internal static IntPtr GetWindowLongPtr(IntPtr hWnd, int nIndex) =>
