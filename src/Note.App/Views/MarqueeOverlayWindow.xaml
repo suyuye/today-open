@@ -1,0 +1,23 @@
+<Window x:Class="NoteApp.Views.MarqueeOverlayWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="True"
+        ShowInTaskbar="False"
+        ShowActivated="False"
+        ResizeMode="NoResize"
+        WindowStartupLocation="Manual"
+        IsHitTestVisible="False">
+    <!-- 整个窗口不参与命中测试：它只是在框选期间显示的"画布"，
+         绝不能挡住鼠标 —— 鼠标事件全部来自全局钩子，不来自这个窗口。 -->
+    <Canvas x:Name="RootCanvas" IsHitTestVisible="False">
+        <!-- 框选矩形：琥珀色描边 + 极淡填充，与便签的贴边提示同色系 -->
+        <Rectangle x:Name="MarqueeRect"
+                   Stroke="#E8902A"
+                   StrokeThickness="1"
+                   Fill="#22E8902A"
+                   Visibility="Collapsed"/>
+    </Canvas>
+</Window>

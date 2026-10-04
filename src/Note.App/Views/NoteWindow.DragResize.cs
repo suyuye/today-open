@@ -62,6 +62,16 @@ public partial class NoteWindow
     /// </summary>
     private void DragWindowWithLift()
     {
+        // 🔴 「这一张已被框选选中」时**不要**走单张拖动：用户的意图是整组拖动，
+        // 而框选协调器已经在处理这个手势了。若这里照常 DragMove，
+        // 被按住的这张会被两条路径同时移动，位移比组内其他成员多一截 ——
+        // 表现为"框选拖动后便签之间错位了"（实测多 11 物理像素）。
+        // 详见 IsSelectedByMarqueeProvider 的说明。
+        if (IsSelectedByMarqueeProvider?.Invoke(this) == true)
+        {
+            return;
+        }
+
         SetShadowLifted(true);
         _isDragging = true;
         try
@@ -83,6 +93,7 @@ public partial class NoteWindow
         // 先收起预览提示，再判定最终结果（避免"提示要吸"和"实际没吸"同时显示）
         _dockController.ClearSnapPreview();
         HideSnapPreview();
+        HideAlignGuides();
 
         // DragMove 同步阻塞到松开，返回时位置已更新
         _viewModel.UpdateWindowPosition(Left, Top);
@@ -93,6 +104,11 @@ public partial class NoteWindow
 
     /// <summary>
     /// 拖动期间实时刷新吸附预览（由 <see cref="_snapPreviewTimer"/> 每 40ms 调用）。
+    ///
+    /// 这里做两件事，顺序不能颠倒：
+    /// 1. **便签间对齐吸附**（先做）：它可能微调窗口位置，必须先完成，
+    ///    否则贴边预览会按吸附前的位置判定，出现"提示贴边、实际被对齐拉走了"。
+    /// 2. **贴边预览**：按最终位置判断会不会吸到屏幕边缘。
     /// </summary>
     private void UpdateSnapPreviewTick()
     {
@@ -101,7 +117,132 @@ public partial class NoteWindow
             return;
         }
 
+        ApplyAlignSnap();
         _dockController.UpdateSnapPreview();
+    }
+
+    /// <summary>
+    /// 便签之间的边缘对齐吸附：拖动中靠近别的便签时，把它「拉」到边缘齐平的位置，
+    /// 并显示一条对齐提示线。
+    ///
+    /// **为什么在采样定时器里做而不是拖动结束时做**：
+    /// 需求要的是「靠近时出现明显的停顿感」—— 这只有在拖动**过程中**把窗口吸过去
+    /// 才能获得；若等松手再对齐，用户感受不到"吸住"这个瞬间。
+    ///
+    /// 🔴 **只对常规形态生效**。折叠胶囊的语义是"收纳"，用户拖动它就是在摆一个胶囊，
+    /// 拿胶囊的边去跟别的便签对齐会让它跳到奇怪的位置；极简磁贴同理。
+    /// </summary>
+    private void ApplyAlignSnap()
+    {
+        // 折叠/极简不参与对齐吸附
+        if (_viewModel.IsCompactDisplay || _viewModel.IsLocked)
+        {
+            HideAlignGuides();
+            return;
+        }
+
+        var others = CollectOtherNoteRects();
+        if (others.Count == 0)
+        {
+            HideAlignGuides();
+            return;
+        }
+
+        // 用「可见内容矩形」做对齐判定：阴影是透明的，拿外框对齐会让两张便签的
+        // 可见边之间永远差一个边距，看起来就是"怎么都对不齐"。
+        var self = new Rect(
+            Left + ShadowMargin,
+            Top + ShadowMargin,
+            Math.Max(1, Width - ShadowMargin * 2),
+            Math.Max(1, Height - ShadowMargin * 2));
+
+        var result = NoteAlignGeometry.Compute(self, others);
+        if (!result.AlignedX && !result.AlignedY)
+        {
+            HideAlignGuides();
+            return;
+        }
+
+        // 把吸附偏移量应用到窗口位置：注意 result 给的是「可见矩形」要移动的量，
+        // 窗口外框与可见矩形是同步移动的，直接加到 Left/Top 即可。
+        if (result.AlignedX)
+        {
+            Left += result.Dx;
+        }
+
+        if (result.AlignedY)
+        {
+            Top += result.Dy;
+        }
+
+        ShowAlignGuides(result);
+    }
+
+    /// <summary>
+    /// 收集桌面上**其它**便签的可见内容矩形，供对齐计算用。
+    ///
+    /// 通过注入的提供者拿（而不是自己去翻窗口列表），是为了让便签窗口
+    /// 不依赖 WindowService —— 保持窗口类与窗口管理服务之间的单向关系。
+    /// </summary>
+    private List<Rect> CollectOtherNoteRects()
+    {
+        if (OtherNoteRectsProvider is null)
+        {
+            return new List<Rect>();
+        }
+
+        return OtherNoteRectsProvider(this);
+    }
+
+    /// <summary>
+    /// 显示对齐提示线（一条琥珀色的横向/纵向细线，画在窗口内、对齐位置上）。
+    ///
+    /// 线只画在**本窗口范围内**：跨窗口画线需要额外的覆盖层，代价大且收益有限；
+    /// 用户看到"我这里有一条线跟对方齐平"就够理解发生了什么。
+    /// </summary>
+    private void ShowAlignGuides(NoteAlignGeometry.AlignResult result)
+    {
+        if (AlignGuideVertical is not null)
+        {
+            if (result.AlignedX)
+            {
+                // 竖线：画在对齐的 X 位置（换算成本窗口局部坐标）
+                var x = result.GuideLeft - Left;
+                AlignGuideVertical.Margin = new Thickness(x, 0, 0, 0);
+                AlignGuideVertical.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                AlignGuideVertical.Visibility = Visibility.Collapsed;
+            }
+        }
+
+        if (AlignGuideHorizontal is not null)
+        {
+            if (result.AlignedY)
+            {
+                var y = result.GuideTop - Top;
+                AlignGuideHorizontal.Margin = new Thickness(0, y, 0, 0);
+                AlignGuideHorizontal.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                AlignGuideHorizontal.Visibility = Visibility.Collapsed;
+            }
+        }
+    }
+
+    private void HideAlignGuides()
+    {
+        if (AlignGuideVertical is not null)
+        {
+            AlignGuideVertical.Visibility = Visibility.Collapsed;
+        }
+
+        if (AlignGuideHorizontal is not null)
+        {
+            AlignGuideHorizontal.Visibility = Visibility.Collapsed;
+        }
     }
 
     /// <summary>

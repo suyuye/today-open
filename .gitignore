@@ -24,6 +24,9 @@ project.lock.json
 *.db
 *.db-shm
 *.db-wal
+# 验证脚本按 sha256 命名找回过真库副本，偶尔会落在仓库根（如 05a7b92f…），
+# 内容就是数据库本身 —— 绝不能提交。用「32/64 位十六进制纯文件名」兜底。
+[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]*
 
 # Project-local tooling data (never publish)
 Temp/

@@ -841,6 +841,34 @@
             </Border>
         </Grid>
 
+        <!-- ============ 便签间对齐提示线（拖动时靠近别的便签才出现） ============
+             拖动中靠近另一张便签、边缘齐平时，在这里画一条琥珀色细线，
+             让用户看清"我跟哪条边对齐了"。
+             线只画在本窗口范围内：跨窗口画线要额外的覆盖层，收益有限；
+             用户看到"我这里有条线跟对方齐平"就足以理解发生了什么。
+             IsHitTestVisible=False：绝不能干扰拖拽。 -->
+        <Grid x:Name="AlignGuideLayer" IsHitTestVisible="False">
+            <!-- 竖线：横向对齐（左对左 / 右对右）时显示，位置由 code-behind 设 Margin.Left -->
+            <Border x:Name="AlignGuideVertical" Width="1"
+                    HorizontalAlignment="Left" VerticalAlignment="Stretch"
+                    Background="#E8902A" Opacity="0.9" Visibility="Collapsed"/>
+            <!-- 横线：纵向对齐（上对上 / 下对下）时显示，位置由 Margin.Top 决定 -->
+            <Border x:Name="AlignGuideHorizontal" Height="1"
+                    HorizontalAlignment="Stretch" VerticalAlignment="Top"
+                    Background="#E8902A" Opacity="0.9" Visibility="Collapsed"/>
+        </Grid>
+
+        <!-- ============ 框选高亮（被框选批量拖动时显示） ============
+             只在桌面框选命中时出现，套在便签可见内容外圈。
+             用独立的琥珀色描边而不是改便签底色：便签颜色是用户选的，
+             不该被临时的"选中"状态覆盖掉。
+             与贴边提示同色系，让"选中"这件事在同一套视觉语言里。
+             IsHitTestVisible=False：绝不干扰鼠标（框选判定全部来自全局钩子）。 -->
+        <Border x:Name="MarqueeHighlight"
+                Margin="12" CornerRadius="{Binding NoteCornerRadius}"
+                BorderBrush="#E8902A" BorderThickness="2"
+                IsHitTestVisible="False" Visibility="Collapsed"/>
+
         <!-- 四边缩放手柄（透明 6px） -->
         <Thumb Style="{StaticResource ResizeThumbStyle}" Tag="W" Cursor="SizeWE"
                HorizontalAlignment="Left" VerticalAlignment="Stretch" Width="6"
